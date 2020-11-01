@@ -1,9 +1,10 @@
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 enum Color {
     White,
     Black,
 }
 
+#[derive(PartialEq, Copy, Clone)]
 enum Piece {
     Pawn,
     Knight,
@@ -24,22 +25,15 @@ struct BoardState {
 }
 
 impl BoardState {
+
     pub fn get_piece_bitboard_of_color(&self, piece: Piece, color: Color) -> u64 {
-        let color_offset = match color {
-            Color::White => 0,
-            Color::Black => 6
-        };
+        let offset = get_bitboard_offset(piece, color);
+        return self.bitboards[offset];
+    }
 
-        let piece_offset = match piece {
-            Piece::Pawn => 0,
-            Piece::Knight => 1,
-            Piece::Bishop => 2,
-            Piece::Rook => 3,
-            Piece::Queen => 4,
-            Piece::King => 5
-        };
-
-        return self.bitboards[piece_offset + color_offset];
+    pub fn set_piece_bitboard_of_color(&mut self, piece: Piece, color: Color, new_bitboard: u64) {
+        let offset = get_bitboard_offset(piece, color);
+        self.bitboards[offset] = new_bitboard;
     }
 
     pub fn pawn_moves(&self, to_move: &Color) -> Vec<BoardState> {
@@ -60,19 +54,23 @@ impl BoardState {
             single_move_offset = -8;
         }
 
-        let pawn_indicies = indicies_from_bitboard(self.pawns[0]);
+        let pawn_bitboard = self.get_piece_bitboard_of_color(Piece::Pawn, *to_move);
+        let pawn_indicies = indicies_from_bitboard(pawn_bitboard);
         for pawn in pawn_indicies {
             // If the place in front of the pawn isn't occupied
             if get_bitboard_index(occupied, (pawn as i16 + single_move_offset as i16) as u8) == false {
                 // ... then we can try move it
-                let new_bitboard = move_piece(self.pawns[0], pawn, pawn + 8);
+                let new_bitboard = move_piece(pawn_bitboard, pawn, pawn + 8);
 
                 // if we got a new bit_board that works
                 match new_bitboard {
                     Some(some_new_bitboard) => {
                         // Add it to the list
                         let mut new_board = *self;
-                        new_board.pawns[0] = some_new_bitboard;
+                        new_board.set_piece_bitboard_of_color(
+                            Piece::Pawn,
+                            *to_move,
+                            some_new_bitboard);
                         boards.push(new_board);
                     }, None => {}
                 }
@@ -88,32 +86,45 @@ impl BoardState {
 
     fn get_occupied(&self) -> u64 {
         let mut occupied: u64 = 0;
-        for i in 1..2 {
-            occupied &=
-                self.pawns[i] &
-                self.knights[i] &
-                self.bishops[i] &
-                self.rooks[i] &
-                self.queens[i] &
-                self.kings[i]
+        for i in 0..12 {
+            occupied &= self.bitboards[i];
         }
 
         occupied
     }
 
-    fn move_piece(&self, 
+    //fn move_piece(&self, 
 
+}
+
+fn get_bitboard_offset(piece: Piece, color: Color) -> usize {
+    let color_offset = match color {
+        Color::White => 0,
+        Color::Black => 6
+    };
+
+    let piece_offset = match piece {
+        Piece::Pawn => 0,
+        Piece::Knight => 1,
+        Piece::Bishop => 2,
+        Piece::Rook => 3,
+        Piece::Queen => 4,
+        Piece::King => 5
+    };
+
+    color_offset + piece_offset
 }
 
 fn indicies_from_bitboard(bitboard: u64) -> Vec<u8> {
     let mut indicies = vec![];
     let mut index = 0;
+    let mut bitboard_copy = bitboard;
     while bitboard > 0 {
         if bitboard & 1 == 1 {
             indicies.push(index);
         }
 
-        bitboard >>= 1;
+        bitboard_copy >>= 1;
         index += 1;
     }
 
