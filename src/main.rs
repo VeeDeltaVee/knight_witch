@@ -55,10 +55,10 @@ impl BoardState {
         }
 
         let pawn_bitboard = self.get_piece_bitboard_of_color(Piece::Pawn, *to_move);
-        let pawn_indicies = indicies_from_bitboard(pawn_bitboard);
-        for pawn in pawn_indicies {
+        let pawn_squares = squares_from_bitboard(pawn_bitboard);
+        for pawn in pawn_squares {
             // If the place in front of the pawn isn't occupied
-            if get_bitboard_index(occupied, (pawn as i16 + single_move_offset as i16) as u8) == false {
+            if get_bitboard_square(occupied, (pawn as i16 + single_move_offset as i16) as u8) == false {
                 // ... then we can try move it
                 let new_bitboard = move_piece(pawn_bitboard, pawn, pawn + 8);
 
@@ -115,43 +115,43 @@ fn get_bitboard_offset(piece: Piece, color: Color) -> usize {
     color_offset + piece_offset
 }
 
-fn indicies_from_bitboard(bitboard: u64) -> Vec<u8> {
-    let mut indicies = vec![];
-    let mut index = 0;
+fn squares_from_bitboard(bitboard: u64) -> Vec<u8> {
+    let mut squares = vec![];
+    let mut square = 0;
     let mut bitboard_copy = bitboard;
     while bitboard > 0 {
         if bitboard & 1 == 1 {
-            indicies.push(index);
+            squares.push(square);
         }
 
         bitboard_copy >>= 1;
-        index += 1;
+        square += 1;
     }
 
-    indicies
+    squares
 }
 
-fn get_bitboard_index(board: u64, index: u8) -> bool {
-    if is_valid_square(index) {
-        let mask : u64 = 1 << index;
+fn get_bitboard_square(board: u64, square: u8) -> bool {
+    if is_valid_square(square) {
+        let mask : u64 = 1 << square;
         mask & board != 0
     } else {
         false
     }
 }
 
-fn set_bitboard_index(board: u64, index: u8) -> Option<u64> {
-    if is_valid_square(index) {
-        let mask : u64 = 1 << index;
+fn set_bitboard_square(board: u64, square: u8) -> Option<u64> {
+    if is_valid_square(square) {
+        let mask : u64 = 1 << square;
         Some(board | mask)
     } else {
         None
     }
 }
 
-fn unset_bitboard_index(board: u64, index: u8) -> Option<u64> {
-    if is_valid_square(index) {
-        let mask : u64 = 1 << index;
+fn unset_bitboard_square(board: u64, square: u8) -> Option<u64> {
+    if is_valid_square(square) {
+        let mask : u64 = 1 << square;
         Some(board & !mask)
     } else {
         None
@@ -159,9 +159,9 @@ fn unset_bitboard_index(board: u64, index: u8) -> Option<u64> {
 }
 
 fn move_piece(bitboard: u64, from: u8, to: u8) -> Option<u64> {
-    let unset_bitboard = unset_bitboard_index(bitboard, from);
+    let unset_bitboard = unset_bitboard_square(bitboard, from);
     match unset_bitboard {
-        Some(some_unset_bitboard) => set_bitboard_index(some_unset_bitboard, to),
+        Some(some_unset_bitboard) => set_bitboard_square(some_unset_bitboard, to),
         None => None
     }
 }
