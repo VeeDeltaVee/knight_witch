@@ -45,9 +45,9 @@ impl BoardState {
 
     fn pawn_pushes(&self, to_move: &Color) -> Vec<BoardState> {
         let mut boards = vec![];
-        let occupied = self.get_occupied();
+        let occupied = self.get_occupied(None);
 
-        let single_move_offset: i8;
+        let single_move_offset: i16;
         if *to_move == Color::White {
             single_move_offset = 8;
         } else {
@@ -57,23 +57,18 @@ impl BoardState {
         let pawn_bitboard = self.get_piece_bitboard_of_color(Piece::Pawn, *to_move);
         let pawn_squares = squares_from_bitboard(pawn_bitboard);
         for pawn in pawn_squares {
-            // If the place in front of the pawn isn't occupied
-            if get_bitboard_square(occupied, (pawn as i16 + single_move_offset as i16) as u8) == false {
-                // ... then we can try move it
-                let new_bitboard = move_piece(pawn_bitboard, pawn, pawn + 8);
+            let single_move = self.get_move_if_free_square(Piece::Pawn, *to_move, false,
+                                    pawn, (pawn as i16 + single_move_offset) as u8);
+            match single_move {
+                Some(new_board) => boards.push(new_board),
+                None => {},
+            }
 
-                // if we got a new bit_board that works
-                match new_bitboard {
-                    Some(some_new_bitboard) => {
-                        // Add it to the list
-                        let mut new_board = *self;
-                        new_board.set_piece_bitboard_of_color(
-                            Piece::Pawn,
-                            *to_move,
-                            some_new_bitboard);
-                        boards.push(new_board);
-                    }, None => {}
-                }
+            let double_move = self.get_move_if_free_square(Piece::Pawn, *to_move, false,
+                                    pawn, (pawn as i16 + 2*single_move_offset) as u8);
+            match double_move {
+                Some(new_board) => boards.push(new_board),
+                None => {},
             }
         }
 
@@ -84,16 +79,52 @@ impl BoardState {
         return vec![];
     }
 
-    fn get_occupied(&self) -> u64 {
+    fn get_occupied(&self, one_color: Option<Color>) -> u64 {
         let mut occupied: u64 = 0;
-        for i in 0..12 {
+        let range = match one_color {
+            Some(Color::White) => 0..6,
+            Some(Color::Black) => 7..12,
+            None               => 0..12
+        };
+        for i in range {
             occupied &= self.bitboards[i];
         }
 
         occupied
     }
 
-    //fn move_piece(&self, 
+    fn get_move_if_free_square(&self, piece: Piece, to_move: Color, can_take: bool,
+                                      from: u8, to: u8) -> Option<BoardState> {
+        let occupied = if can_take {
+            self.get_occupied(Some(to_move))
+        } else {
+            self.get_occupied(None)
+        };
+
+        let piece_bitboard = self.get_piece_bitboard_of_color(piece, to_move);
+        if !get_bitboard_square(occupied, to) {
+            let new_bitboard = move_piece(piece_bitboard, from, to);
+            if can_take {
+                unimplemented!("Logic to take piece on move");
+            }
+
+            match new_bitboard {
+                Some(some_new_bitboard) => {
+                    // Build a new full board from new bitboards
+                    let mut new_board = *self;
+                    new_board.set_piece_bitboard_of_color(
+                        piece,
+                        to_move,
+                        some_new_bitboard);
+                    return Some(new_board);
+                }, None => {
+                    return None;
+                }
+            }
+        } else {
+            None
+        }
+    }
 
 }
 
