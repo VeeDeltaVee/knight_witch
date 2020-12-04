@@ -1,3 +1,5 @@
+mod pieces;
+
 fn main() {
-    println!("Hello, world!");
+    pieces::Board::default();
 }
