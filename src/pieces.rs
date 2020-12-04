@@ -44,6 +44,8 @@ impl Board {
         }
     }
 
+    // Generates a list of future board states that are possible from the
+    // current board state. Does _not_ flip the piece sides or the board.
     pub fn generate_moves(&self) -> Vec<Board> {
         let mut moves = self.generate_pawn_moves();
         moves.append(&mut self.generate_knight_moves());
@@ -53,6 +55,21 @@ impl Board {
         moves.append(&mut self.generate_king_moves());
 
         moves
+    }
+
+    // Gets the piece that's at the given position.
+    //
+    // File counts from the left, starts at 0
+    // Rank counts from the bottom, starts at 0
+    // Returns error if position is out of bounds
+    pub fn get_piece_at_position(&self, file: usize, rank: usize)
+        -> Result<Option<(PieceType, PieceSide)>, &'static str>
+    {
+        if (self.is_valid_square(file, rank)) {
+            Err("Position out of bounds")
+        } else {
+            Ok(self.squares[rank * self.width + file])
+        }
     }
 
     fn generate_pawn_moves(&self) -> Vec<Board> {
@@ -77,6 +94,10 @@ impl Board {
 
     fn generate_king_moves(&self) -> Vec<Board> {
         vec![]
+    }
+
+    fn is_valid_square(&self, file: usize, rank: usize) -> bool {
+        file >= self.width || rank * self.width + file >= self.squares.len()
     }
 }
 
@@ -198,7 +219,7 @@ mod test {
 
         #[test]
         fn one_square_forward() {
-            let board = get_test_board_for_simple_moves();
+            let board = get_test_board_for_simple_pawn_moves();
 
             let moved_boards = board.generate_moves();
 
@@ -212,7 +233,7 @@ mod test {
 
         #[test]
         fn two_squares_forward() {
-            let board = get_test_board_for_simple_moves();
+            let board = get_test_board_for_simple_pawn_moves();
 
             let moved_boards = board.generate_moves();
 
