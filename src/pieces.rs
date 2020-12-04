@@ -44,8 +44,39 @@ impl Board {
         }
     }
 
-    pub fn generate_pawn_moves(&self) -> Vec<Board> {
-        return vec![];
+    pub fn generate_moves(&self) -> Vec<Board> {
+        let mut moves = self.generate_pawn_moves();
+        moves.append(&mut self.generate_knight_moves());
+        moves.append(&mut self.generate_bishop_moves());
+        moves.append(&mut self.generate_rook_moves());
+        moves.append(&mut self.generate_queen_moves());
+        moves.append(&mut self.generate_king_moves());
+
+        moves
+    }
+
+    fn generate_pawn_moves(&self) -> Vec<Board> {
+        vec![]
+    }
+
+    fn generate_knight_moves(&self) -> Vec<Board> {
+        vec![]
+    }
+
+    fn generate_bishop_moves(&self) -> Vec<Board> {
+        vec![]
+    }
+
+    fn generate_rook_moves(&self) -> Vec<Board> {
+        vec![]
+    }
+
+    fn generate_queen_moves(&self) -> Vec<Board> {
+        vec![]
+    }
+
+    fn generate_king_moves(&self) -> Vec<Board> {
+        vec![]
     }
 }
 
@@ -157,6 +188,7 @@ mod test {
                 squares: vec![
                     None, None, None,
                     None, None, None,
+                    None, None, None,
                     None, Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), None,
                     None, None, None,
                 ],
@@ -166,35 +198,36 @@ mod test {
 
         #[test]
         fn one_square_forward() {
-            let board = get_test_board_for_simple_pawn_moves();
+            let board = get_test_board_for_simple_moves();
 
-            let moved_boards = board.generate_pawn_moves();
+            let moved_boards = board.generate_moves();
 
             // At least one of the moves suggested should have the pawn moving
             // up on square
+            assert!(
+                moved_boards.into_iter()
+                .any(|x| matches!(x.squares[7], Some((PieceType::Pawn, _))))
+            );
+        }
+
+        #[test]
+        fn two_squares_forward() {
+            let board = get_test_board_for_simple_moves();
+
+            let moved_boards = board.generate_moves();
+
+            // At least one of the moves suggested should have the pawn moving
+            // up two squares
             assert!(
                 moved_boards.into_iter()
                 .any(|x| matches!(x.squares[4], Some((PieceType::Pawn, _))))
             );
         }
 
-        #[test]
-        fn two_squares_forward() {
-            let board = get_test_board_for_simple_pawn_moves();
-
-            let moved_boards = board.generate_pawn_moves();
-
-            // At least one of the moves suggested should have the pawn moving
-            // up two squares
-            assert!(
-                moved_boards.into_iter()
-                .any(|x| matches!(x.squares[1], Some((PieceType::Pawn, _))))
-            );
-        }
-
         fn get_test_board_for_pawn_captures() -> Board {
             Board {
                 squares: vec![
+                    None, None, None,
                     Some((PieceType::Bishop, PieceSide::CurrentlyMoving)), None, Some((PieceType::Bishop, PieceSide::MovingNext)),
                     None, Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), None,
                     None, None, None,
@@ -207,13 +240,13 @@ mod test {
         fn captures_opponents_pieces() {
             let board = get_test_board_for_pawn_captures();
 
-            let moved_boards = board.generate_pawn_moves();
+            let moved_boards = board.generate_moves();
 
             // At least one of the moves suggested should have the pawn
-            //
+            // take a piece
             assert!(
                 moved_boards.into_iter()
-                .any(|x| matches!(x.squares[2], Some((PieceType::Pawn, _))))
+                .any(|x| matches!(x.squares[5], Some((PieceType::Pawn, _))))
             );
         }
 
@@ -221,15 +254,13 @@ mod test {
         fn doesnt_capture_friendly_pieces() {
             let board = get_test_board_for_pawn_captures();
 
-            let moved_boards = board.generate_pawn_moves();
-            //
-            // At least one of the moves suggested should have the pawn moving up on square
+            let moved_boards = board.generate_moves();
+
+            // None of the moves should have a pawn taking the friendly piece
             assert!(
                 moved_boards.into_iter()
-                .all(|x| !matches!(x.squares[0], Some((PieceType::Pawn, _))))
+                .all(|x| !matches!(x.squares[3], Some((PieceType::Pawn, _))))
             );
         }
-
-
     }
 }
