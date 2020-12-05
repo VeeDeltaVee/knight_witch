@@ -86,7 +86,7 @@ impl Board {
     pub fn get_piece_at_position(&self, square: Square)
         -> Result<Option<(PieceType, PieceSide)>, &'static str>
     {
-        if self.is_valid_square(square) {
+        if !self.is_valid_square(square) {
             Err("Position out of bounds")
         } else {
             Ok(self.squares[square.rank * self.width + square.file])
@@ -99,7 +99,7 @@ impl Board {
     pub fn set_piece_at_position(&mut self, piece: Piece, square: Square)
         -> Result<(), &'static str>
     {
-        if self.is_valid_square(square) {
+        if !self.is_valid_square(square) {
             Err("Position out of bounds")
         } else {
             self.squares[square.rank * self.width + square.file] = piece;
@@ -165,7 +165,7 @@ impl Board {
             PieceSide::CurrentlyMoving
         )?;
 
-        // append single square pawn moves
+        // Append single square pawn moves
         let single_square_pawn_move_boards = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 1 }))
 
@@ -176,7 +176,7 @@ impl Board {
             .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
         possible_moves.extend(single_square_pawn_move_boards);
 
-        // append double square pawn moves
+        // Append double square pawn moves
         let double_square_pawn_move_boards = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 2 }))
 
@@ -192,7 +192,22 @@ impl Board {
 
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+
         possible_moves.extend(double_square_pawn_move_boards);
+
+        // Append pawn captures
+        let pawn_capture_left_moves = pawn_positions.iter()
+            .map(|pos| (pos, Square { file: pos.file - 1, rank: pos.rank + 1}));
+        let pawn_capture_right_moves = pawn_positions.iter()
+            .map(|pos| (pos, Square { file: pos.file + 1, rank: pos.rank + 1}));
+        let pawn_capture_boards = pawn_capture_left_moves.chain(pawn_capture_right_moves)
+
+            // The final destination should have an opponent's piece
+            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(Some((_, PieceSide::MovingNext)))))
+
+            // Should be able to move there without error
+            .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+        possible_moves.extend(pawn_capture_boards);
 
         Ok(possible_moves)
     }
@@ -222,12 +237,12 @@ impl Board {
             square.rank * self.width + square.file < self.squares.len()
     }
 
-    fn get_positions_of_pieces_with_given_side_and_type(&self, pieceType: PieceType, pieceSide: PieceSide)
+    fn get_positions_of_pieces_with_given_side_and_type(&self, piece_type: PieceType, piece_side: PieceSide)
         -> Result<Vec<Square>, &'static str>
     {
         self.squares.iter()
             .zip(0..self.squares.len())
-            .filter(|(x, _)| matches!(x, Some((PieceType::Pawn, PieceSide::CurrentlyMoving))))
+            .filter(|(x, _)| matches!(x, Some((piece_type, piece_side))))
             .map(|(_, index)| self.index_to_position(index))
             .collect()
     }
@@ -238,7 +253,7 @@ impl Board {
     // If there is a piece in the given direction, returns position of that piece
     fn check_ray_for_pieces(&self, pos: Square, dir: Direction) -> Square {
         let mut final_pos = pos;
-        while let Ok(new_pos) = self.add_direction_to_position(pos, dir) {
+        while let Ok(new_pos) = self.add_direction_to_position(final_pos, dir) {
             final_pos = new_pos;
         }
 
@@ -248,7 +263,6 @@ impl Board {
     fn add_direction_to_position(&self, pos: Square, dir: Direction) -> Result<Square, &'static str> {
         let new_rank = pos.rank as isize + dir.rank;
         let new_file = pos.file as isize + dir.file;
-
 
         if new_rank < 0 {
             Err("Can't add direction to position, new rank is less than 0")
@@ -378,7 +392,6 @@ mod test {
         #[test]
         fn one_square_forward() {
             let board = get_test_board_for_simple_pawn_moves();
-
             let moved_boards = board.generate_moves().unwrap();
 
             // At least one of the moves suggested should have the pawn moving
