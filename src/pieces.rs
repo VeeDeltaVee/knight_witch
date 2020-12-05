@@ -63,7 +63,7 @@ impl Board {
                 Some((PieceType::Rook, PieceSide::CurrentlyMoving))
             ];
         let mut white_pawn_rank = vec![Some((PieceType::Pawn, PieceSide::CurrentlyMoving)); 8];
-        let mut empty_rank = vec![None; 8];
+        let mut empty_ranks = vec![None; 8*4];
         let mut black_pawn_rank = vec![Some((PieceType::Pawn, PieceSide::MovingNext)); 8];
         let mut black_back_rank = vec![
                 Some((PieceType::Rook, PieceSide::MovingNext)),
@@ -79,10 +79,7 @@ impl Board {
         let mut squares = vec![];
         squares.append(&mut white_back_rank);
         squares.append(&mut white_pawn_rank);
-        squares.append(&mut empty_rank);
-        squares.append(&mut empty_rank);
-        squares.append(&mut empty_rank);
-        squares.append(&mut empty_rank);
+        squares.append(&mut empty_ranks);
         squares.append(&mut black_pawn_rank);
         squares.append(&mut black_back_rank);
 
