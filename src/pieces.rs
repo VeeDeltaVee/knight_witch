@@ -1,4 +1,4 @@
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -8,10 +8,22 @@ pub enum PieceType {
     King,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum PieceSide {
     CurrentlyMoving,
     MovingNext,
+}
+
+pub type Piece = Option<(PieceType, PieceSide)>;
+
+// Represents a square on the board
+//
+// File counts from the left, starts at 0
+// Rank counts from the bottom, starts at 0
+#[derive(Copy, Clone, Debug)]
+pub struct Square {
+    file: usize,
+    rank: usize
 }
 
 #[derive(Clone, Debug)]
@@ -21,7 +33,7 @@ pub struct Board {
     //
     // Indices work as follows: we start out at the bottom file, go left to
     // right, and then once we reach the end of a file we go up a file.
-    squares: Vec<Option<(PieceType, PieceSide)>>,
+    squares: Vec<Piece>,
     width: usize
 
 }
@@ -46,34 +58,108 @@ impl Board {
 
     // Generates a list of future board states that are possible from the
     // current board state. Does _not_ flip the piece sides or the board.
-    pub fn generate_moves(&self) -> Vec<Board> {
-        let mut moves = self.generate_pawn_moves();
+    pub fn generate_moves(&self) -> Result<Vec<Board>, &'static str> {
+        let mut moves = self.generate_pawn_moves()?;
         moves.append(&mut self.generate_knight_moves());
         moves.append(&mut self.generate_bishop_moves());
         moves.append(&mut self.generate_rook_moves());
         moves.append(&mut self.generate_queen_moves());
         moves.append(&mut self.generate_king_moves());
 
-        moves
+        Ok(moves)
     }
 
     // Gets the piece that's at the given position.
     //
-    // File counts from the left, starts at 0
-    // Rank counts from the bottom, starts at 0
     // Returns error if position is out of bounds
-    pub fn get_piece_at_position(&self, file: usize, rank: usize)
+    pub fn get_piece_at_position(&self, square: Square)
         -> Result<Option<(PieceType, PieceSide)>, &'static str>
     {
-        if (self.is_valid_square(file, rank)) {
+        if self.is_valid_square(square) {
             Err("Position out of bounds")
         } else {
-            Ok(self.squares[rank * self.width + file])
+            Ok(self.squares[square.rank * self.width + square.file])
         }
     }
 
-    fn generate_pawn_moves(&self) -> Vec<Board> {
-        vec![]
+    // Sets the piece at the given position to be the given piece
+    //
+    // Returns error if position is out of bounds
+    pub fn set_piece_at_position(&mut self, piece: Piece, square: Square)
+        -> Result<(), &'static str>
+    {
+        if self.is_valid_square(square) {
+            Err("Position out of bounds")
+        } else {
+            self.squares[square.rank * self.width + square.file] = piece;
+            Ok(())
+        }
+    }
+
+    // Moves the piece at given old position to given new position
+    // Returns a new board with the move made, if you want to make the move in
+    // place use the make_move function
+    //
+    // Returns error if either position is out of bounds, if there's no piece at
+    // old position, if there's no piece at the new position, or if the piece
+    // to be moved isn't CurrentlyMoving
+    pub fn new_board_with_moved_piece(&self, old_pos: Square, new_pos: Square)
+        -> Result<Board, &'static str>
+    {
+        let mut new_board = self.clone();
+        new_board.make_move(old_pos, new_pos)?;
+        Ok(new_board)
+    }
+
+    // Moves the piece at given old position to given new position in place
+    //
+    // Returns error if either position is out of bounds, if there's no piece at
+    // old position, if there's no piece at the new position, or if the piece
+    // to be moved isn't CurrentlyMoving
+    pub fn make_move(&mut self, old_pos: Square, new_pos: Square)
+        -> Result<(), &'static str>
+    {
+        let old_piece = self.get_piece_at_position(old_pos)?;
+        let new_piece = self.get_piece_at_position(new_pos)?;
+        match (old_piece, new_piece) {
+            (None, _) => Err("Can't make move, old_pos doesn't have piece"),
+            (Some((_, PieceSide::MovingNext)), _) => Err("Can't make move, piece at old_pos isn't CurrentlyMoving"),
+            (_, Some((_, PieceSide::CurrentlyMoving))) => Err("Can't make move, friendly piece exists at new_pos"),
+            (Some((_, PieceSide::CurrentlyMoving)), _) => {
+                self.set_piece_at_position(old_piece, new_pos)?;
+                self.set_piece_at_position(None, old_pos)?;
+                Ok(())
+            }
+        }
+    }
+
+    // Returns the position that is related to the given index
+    pub fn index_to_position(&self, index: usize) -> Result<Square, &'static str> {
+        if index >= self.squares.len() {
+            Err("Index out of bounds")
+        } else {
+            let rank = index / self.width;
+            let file = index - rank * self.width;
+            Ok(Square {
+                rank: rank,
+                file: file
+            })
+        }
+    }
+
+    fn generate_pawn_moves(&self) -> Result<Vec<Board>, &'static str> {
+        let mut possible_moves = vec![];
+        let pawn_positions = self.get_positions_of_pieces_with_given_side_and_type(
+            PieceType::Pawn,
+            PieceSide::CurrentlyMoving
+        )?;
+
+        // append single square pawn moves
+        let single_square_pawn_moves = pawn_positions.iter()
+            .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 1 }))
+            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)));
+
+        Ok(possible_moves)
     }
 
     fn generate_knight_moves(&self) -> Vec<Board> {
@@ -96,8 +182,19 @@ impl Board {
         vec![]
     }
 
-    fn is_valid_square(&self, file: usize, rank: usize) -> bool {
-        file >= self.width || rank * self.width + file >= self.squares.len()
+    fn is_valid_square(&self, square: Square) -> bool {
+        square.file >= self.width ||
+            square.rank * self.width + square.file >= self.squares.len()
+    }
+
+    fn get_positions_of_pieces_with_given_side_and_type(&self, pieceType: PieceType, pieceSide: PieceSide)
+        -> Result<Vec<Square>, &'static str>
+    {
+        self.squares.iter()
+            .zip(0..self.squares.len())
+            .filter(|(x, _)| matches!(x, Some((PieceType::Pawn, PieceSide::CurrentlyMoving))))
+            .map(|(_, index)| self.index_to_position(index))
+            .collect()
     }
 }
 
