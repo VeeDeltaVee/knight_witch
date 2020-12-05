@@ -417,15 +417,16 @@ mod test {
         }
 
         fn get_test_board_for_pawn_captures() -> Board {
-            Board {
-                squares: vec![
-                    None, None, None,
-                    Some((PieceType::Bishop, PieceSide::CurrentlyMoving)), None, Some((PieceType::Bishop, PieceSide::MovingNext)),
-                    None, Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), None,
-                    None, None, None,
-                ],
+            let mut board = Board {
+                squares: vec![None; 12],
                 width: 3
-            }
+            };
+
+            board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Square { rank: 1, file: 1 }).unwrap();
+            board.set_piece_at_position(Some((PieceType::Bishop, PieceSide::CurrentlyMoving)), Square { rank: 2, file: 0 }).unwrap();
+            board.set_piece_at_position(Some((PieceType::Knight, PieceSide::MovingNext)), Square { rank: 2, file: 2 }).unwrap();
+
+            board
         }
 
         #[test]
@@ -438,7 +439,7 @@ mod test {
             // take a piece
             assert!(
                 moved_boards.into_iter()
-                .any(|x| matches!(x.squares[5], Some((PieceType::Pawn, _))))
+                    .any(|x| matches!(x.get_piece_at_position(Square { rank: 2, file: 2 }).unwrap(), Some((PieceType::Pawn, _))))
             );
         }
 
@@ -451,7 +452,7 @@ mod test {
             // None of the moves should have a pawn taking the friendly piece
             assert!(
                 moved_boards.into_iter()
-                .all(|x| !matches!(x.squares[3], Some((PieceType::Pawn, _))))
+                    .all(|x| !matches!(x.get_piece_at_position(Square { rank: 2, file: 0 }).unwrap(), Some((PieceType::Pawn, _))))
             );
         }
     }
