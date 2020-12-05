@@ -168,17 +168,31 @@ impl Board {
         // append single square pawn moves
         let single_square_pawn_move_boards = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 1 }))
+
+            // The final destination should be free
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
+
+            // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
         possible_moves.extend(single_square_pawn_move_boards);
 
         // append double square pawn moves
-        let single_square_pawn_move_boards = pawn_positions.iter()
+        let double_square_pawn_move_boards = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 2 }))
+
+            // Should start from second rank
             .filter(|(old_pos, _)| old_pos.rank == 1)
+
+            // Should have the intervening space be free
+            .filter(|(old_pos, new_pos)| 
+                self.check_ray_for_pieces(**old_pos, Direction {rank: 1, file: 0}).rank >= new_pos.rank)
+
+            // The final destination should be free
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
+
+            // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
-        possible_moves.extend(single_square_pawn_move_boards);
+        possible_moves.extend(double_square_pawn_move_boards);
 
         Ok(possible_moves)
     }
@@ -204,8 +218,8 @@ impl Board {
     }
 
     fn is_valid_square(&self, square: Square) -> bool {
-        square.file >= self.width ||
-            square.rank * self.width + square.file >= self.squares.len()
+        square.file < self.width &&
+            square.rank * self.width + square.file < self.squares.len()
     }
 
     fn get_positions_of_pieces_with_given_side_and_type(&self, pieceType: PieceType, pieceSide: PieceSide)
@@ -234,6 +248,7 @@ impl Board {
     fn add_direction_to_position(&self, pos: Square, dir: Direction) -> Result<Square, &'static str> {
         let new_rank = pos.rank as isize + dir.rank;
         let new_file = pos.file as isize + dir.file;
+
 
         if new_rank < 0 {
             Err("Can't add direction to position, new rank is less than 0")
@@ -384,7 +399,7 @@ mod test {
             // up two squares
             assert!(
                 moved_boards.into_iter()
-                .any(|x| matches!(x.squares[4], Some((PieceType::Pawn, _))))
+                .any(|x| matches!(x.squares[10], Some((PieceType::Pawn, _))))
             );
         }
 
