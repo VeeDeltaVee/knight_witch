@@ -150,7 +150,7 @@ impl Board {
     // old position, if there's no piece at the new position, or if the piece
     // to be moved isn't CurrentlyMoving
     //
-    // TODO: Needs to fail on own check
+    // TODO: Needs to fail when currently-moving king is in check
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square)
         -> Result<(), &'static str>
     {
@@ -221,6 +221,7 @@ impl Board {
 
         // Append pawn captures
         let pawn_capture_left_moves = pawn_positions.iter()
+            .filter(|pos| pos.file > 0)
             .map(|pos| (pos, Square { file: pos.file - 1, rank: pos.rank + 1}));
         let pawn_capture_right_moves = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file + 1, rank: pos.rank + 1}));
@@ -406,13 +407,32 @@ mod test {
     mod pawn_moves {
         use super::*;
 
+        // Returns a board with the setup (FEN piece notation)
+        // ......
+        // ....p.
+        // ...p.p
+        // .Pp..P
+        // P.PPP.
+        // ......
         fn get_test_board_for_simple_pawn_moves() -> Board {
-            let mut squares = vec![None; 3 * 5];
-            squares[4] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            let mut squares = vec![None; 6 * 6];
+            squares[6] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[8] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[9] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[10] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+
+            squares[13] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[14] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[17] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+
+            squares[21] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[23] = Some((PieceType::Pawn, PieceSide::MovingNext));
+
+            squares[28] = Some((PieceType::Pawn, PieceSide::MovingNext));
 
             Board {
                 squares: squares,
-                width: 3
+                width: 6
             }
         }
 
@@ -421,28 +441,72 @@ mod test {
             let board = get_test_board_for_simple_pawn_moves();
             let moved_boards = board.generate_moves().unwrap();
 
-            // At least one of the moves suggested should have the pawn moving
-            // up on square
-            assert!(
-                moved_boards.into_iter()
-                .any(|x| matches!(x.squares[7], Some((PieceType::Pawn, _))))
-            );
+            let expected_single_square_pushes = vec![Square { rank: 2, file: 0 },
+                                                 Square { rank: 2, file: 3 },
+                                                 Square { rank: 2, file: 4 },
+                                                 Square { rank: 3, file: 1 },
+                ];
+            for square in expected_single_square_pushes {
+                assert!(
+                    moved_boards.clone().into_iter()
+                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
+                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
+                    "Didn't find pawn move at rank {}, file {}", square.rank, square.file
+                    );
+            }
+            let unexpected_single_square_pushes = vec![Square { rank: 2, file: 2 },
+                                                       Square { rank: 3, file: 5 },
+                ];
+            for square in unexpected_single_square_pushes {
+                assert_eq!(
+                    moved_boards.clone().into_iter()
+                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
+                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
+                    false,
+                    "Found unexpected pawn move at rank {}, file {}", square.rank, square.file
+                    );
+            }
         }
 
         #[test]
         fn two_squares_forward() {
             let board = get_test_board_for_simple_pawn_moves();
-
             let moved_boards = board.generate_moves().unwrap();
 
-            // At least one of the moves suggested should have the pawn moving
-            // up two squares
-            assert!(
-                moved_boards.into_iter()
-                .any(|x| matches!(x.squares[10], Some((PieceType::Pawn, _))))
-            );
+            // TODO: A lot of copypaste here, could refactor into a function
+            let expected_single_square_pushes = vec![Square { rank: 3, file: 0 },
+                                                     Square { rank: 3, file: 4 },
+                ];
+            for square in expected_single_square_pushes {
+                assert!(
+                    moved_boards.clone().into_iter()
+                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
+                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
+                    "Didn't find pawn move at rank {}, file {}", square.rank, square.file
+                    );
+            }
+
+            let unexpected_single_square_pushes = vec![Square { rank: 4, file: 1 },
+                                                       Square { rank: 3, file: 2 },
+                                                       Square { rank: 3, file: 3 },
+                                                       Square { rank: 4, file: 5 },
+                ];
+            for square in unexpected_single_square_pushes {
+                assert_eq!(
+                    moved_boards.clone().into_iter()
+                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
+                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
+                    false,
+                    "Found unexpeted pawn move at rank {}, file {}", square.rank, square.file
+                    );
+            }
         }
 
+        // Returns a board with the setup
+        // ...
+        // B.b
+        // .P.
+        // ...
         fn get_test_board_for_pawn_captures() -> Board {
             let mut board = Board {
                 squares: vec![None; 12],
