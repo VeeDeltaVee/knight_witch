@@ -52,17 +52,42 @@ pub struct Board {
 impl Board {
     // Construct a default board
     pub fn default() -> Board {
+        let mut white_back_rank = vec![
+                Some((PieceType::Rook, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Bishop, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Queen, PieceSide::CurrentlyMoving)),
+                Some((PieceType::King, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Bishop, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Rook, PieceSide::CurrentlyMoving))
+            ];
+        let mut white_pawn_rank = vec![Some((PieceType::Pawn, PieceSide::CurrentlyMoving)); 8];
+        let mut empty_rank = vec![None; 8];
+        let mut black_pawn_rank = vec![Some((PieceType::Pawn, PieceSide::MovingNext)); 8];
+        let mut black_back_rank = vec![
+                Some((PieceType::Rook, PieceSide::MovingNext)),
+                Some((PieceType::Knight, PieceSide::MovingNext)),
+                Some((PieceType::Bishop, PieceSide::MovingNext)),
+                Some((PieceType::Queen, PieceSide::MovingNext)),
+                Some((PieceType::King, PieceSide::MovingNext)),
+                Some((PieceType::Bishop, PieceSide::MovingNext)),
+                Some((PieceType::Knight, PieceSide::MovingNext)),
+                Some((PieceType::Rook, PieceSide::MovingNext))
+            ];
+
+        let mut squares = vec![];
+        squares.append(&mut white_back_rank);
+        squares.append(&mut white_pawn_rank);
+        squares.append(&mut empty_rank);
+        squares.append(&mut empty_rank);
+        squares.append(&mut empty_rank);
+        squares.append(&mut empty_rank);
+        squares.append(&mut black_pawn_rank);
+        squares.append(&mut black_back_rank);
+
         Board {
-            squares: vec![
-                Some((PieceType::Rook, PieceSide::CurrentlyMoving)), Some((PieceType::Knight, PieceSide::CurrentlyMoving)), Some((PieceType::Bishop, PieceSide::CurrentlyMoving)), Some((PieceType::Queen, PieceSide::CurrentlyMoving)), Some((PieceType::King, PieceSide::CurrentlyMoving)), Some((PieceType::Bishop, PieceSide::CurrentlyMoving)), Some((PieceType::Knight, PieceSide::CurrentlyMoving)), Some((PieceType::Rook, PieceSide::CurrentlyMoving)),
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
-                None, None, None, None, None, None, None, None,
-                None, None, None, None, None, None, None, None,
-                None, None, None, None, None, None, None, None,
-                None, None, None, None, None, None, None, None,
-                Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)), Some((PieceType::Pawn, PieceSide::MovingNext)),
-                Some((PieceType::Rook, PieceSide::MovingNext)), Some((PieceType::Knight, PieceSide::MovingNext)), Some((PieceType::Bishop, PieceSide::MovingNext)), Some((PieceType::Queen, PieceSide::MovingNext)), Some((PieceType::King, PieceSide::MovingNext)), Some((PieceType::Bishop, PieceSide::MovingNext)), Some((PieceType::Knight, PieceSide::MovingNext)), Some((PieceType::Rook, PieceSide::MovingNext)),
-            ],
+            squares: squares,
             width: 8
         }
     }
