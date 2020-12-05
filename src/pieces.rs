@@ -152,6 +152,8 @@ impl Board {
     // Returns error if either position is out of bounds, if there's no piece at
     // old position, if there's no piece at the new position, or if the piece
     // to be moved isn't CurrentlyMoving
+    //
+    // TODO: Needs to fail on own check
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square)
         -> Result<(), &'static str>
     {
@@ -209,7 +211,7 @@ impl Board {
             .filter(|(old_pos, _)| old_pos.rank == 1)
 
             // Should have the intervening space be free
-            .filter(|(old_pos, new_pos)| 
+            .filter(|(old_pos, new_pos)|
                 self.check_ray_for_pieces(**old_pos, Direction {rank: 1, file: 0}).rank >= new_pos.rank)
 
             // The final destination should be free
@@ -234,9 +236,12 @@ impl Board {
             .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
         possible_moves.extend(pawn_capture_boards);
 
+        // TODO: En passant moves
+
         Ok(possible_moves)
     }
 
+    // TODO: Rest of move impls
     fn generate_knight_moves(&self) -> Vec<Board> {
         vec![]
     }
