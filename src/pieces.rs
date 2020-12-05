@@ -1,4 +1,4 @@
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -8,7 +8,7 @@ pub enum PieceType {
     King,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PieceSide {
     CurrentlyMoving,
     MovingNext,
@@ -241,9 +241,9 @@ impl Board {
         -> Result<Vec<Square>, &'static str>
     {
         self.squares.iter()
-            .zip(0..self.squares.len())
-            .filter(|(x, _)| matches!(x, Some((piece_type, piece_side))))
-            .map(|(_, index)| self.index_to_position(index))
+            .enumerate()
+            .filter(|(_, x)| **x == Some((piece_type, piece_side)))
+            .map(|(index, _)| self.index_to_position(index))
             .collect()
     }
 
