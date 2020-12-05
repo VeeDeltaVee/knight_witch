@@ -26,6 +26,17 @@ pub struct Square {
     rank: usize
 }
 
+// Represents a Direction on the board
+// Represents an offset from a position, used for raycasting
+//
+// File counts from the left
+// Rank counts from the bottom
+#[derive(Copy, Clone, Debug)]
+pub struct Direction {
+    file: isize,
+    rank: isize
+}
+
 #[derive(Clone, Debug)]
 pub struct Board {
     // An array of squares for the board.
@@ -155,9 +166,19 @@ impl Board {
         )?;
 
         // append single square pawn moves
-        let single_square_pawn_moves = pawn_positions.iter()
+        let single_square_pawn_move_boards = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 1 }))
-            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)));
+            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
+            .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+        possible_moves.extend(single_square_pawn_move_boards);
+
+        // append double square pawn moves
+        let single_square_pawn_move_boards = pawn_positions.iter()
+            .map(|pos| (pos, Square { file: pos.file, rank: pos.rank + 2 }))
+            .filter(|(old_pos, _)| old_pos.rank == 1)
+            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
+            .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+        possible_moves.extend(single_square_pawn_move_boards);
 
         Ok(possible_moves)
     }
@@ -195,6 +216,34 @@ impl Board {
             .filter(|(x, _)| matches!(x, Some((PieceType::Pawn, PieceSide::CurrentlyMoving))))
             .map(|(_, index)| self.index_to_position(index))
             .collect()
+    }
+
+    // Checks and returns the first piece in the given direction from given position
+    //
+    // If there are no pieces in the given direction, returns the last square that could be reached
+    // If there is a piece in the given direction, returns position of that piece
+    fn check_ray_for_pieces(&self, pos: Square, dir: Direction) -> Square {
+        let mut final_pos = pos;
+        while let Ok(new_pos) = self.add_direction_to_position(pos, dir) {
+            final_pos = new_pos;
+        }
+
+        final_pos
+    }
+
+    fn add_direction_to_position(&self, pos: Square, dir: Direction) -> Result<Square, &'static str> {
+        let new_rank = pos.rank as isize + dir.rank;
+        let new_file = pos.file as isize + dir.file;
+
+        if new_rank < 0 {
+            Err("Can't add direction to position, new rank is less than 0")
+        } else if new_file < 0 {
+            Err("Can't add direction to position, new file is less than 0")
+        } else if !self.is_valid_square(Square { rank: new_rank as usize, file: new_file as usize }) {
+            Err("Can't add direction to position, position is out of bounds")
+        } else {
+            Ok(Square { rank: new_rank as usize, file: new_file as usize })
+        }
     }
 }
 
@@ -302,14 +351,11 @@ mod test {
         use super::*;
 
         fn get_test_board_for_simple_pawn_moves() -> Board {
+            let mut squares = vec![None; 3 * 5];
+            squares[4] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+
             Board {
-                squares: vec![
-                    None, None, None,
-                    None, None, None,
-                    None, None, None,
-                    None, Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), None,
-                    None, None, None,
-                ],
+                squares: squares,
                 width: 3
             }
         }
@@ -318,7 +364,7 @@ mod test {
         fn one_square_forward() {
             let board = get_test_board_for_simple_pawn_moves();
 
-            let moved_boards = board.generate_moves();
+            let moved_boards = board.generate_moves().unwrap();
 
             // At least one of the moves suggested should have the pawn moving
             // up on square
@@ -332,7 +378,7 @@ mod test {
         fn two_squares_forward() {
             let board = get_test_board_for_simple_pawn_moves();
 
-            let moved_boards = board.generate_moves();
+            let moved_boards = board.generate_moves().unwrap();
 
             // At least one of the moves suggested should have the pawn moving
             // up two squares
@@ -358,7 +404,7 @@ mod test {
         fn captures_opponents_pieces() {
             let board = get_test_board_for_pawn_captures();
 
-            let moved_boards = board.generate_moves();
+            let moved_boards = board.generate_moves().unwrap();
 
             // At least one of the moves suggested should have the pawn
             // take a piece
@@ -372,7 +418,7 @@ mod test {
         fn doesnt_capture_friendly_pieces() {
             let board = get_test_board_for_pawn_captures();
 
-            let moved_boards = board.generate_moves();
+            let moved_boards = board.generate_moves().unwrap();
 
             // None of the moves should have a pawn taking the friendly piece
             assert!(
