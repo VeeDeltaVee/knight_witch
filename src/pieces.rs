@@ -20,7 +20,7 @@ pub type Piece = Option<(PieceType, PieceSide)>;
 //
 // File counts from the left, starts at 0
 // Rank counts from the bottom, starts at 0
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Square {
     file: usize,
     rank: usize
@@ -45,7 +45,8 @@ pub struct Board {
     // Indices work as follows: we start out at the bottom file, go left to
     // right, and then once we reach the end of a file we go up a file.
     squares: Vec<Piece>,
-    width: usize
+    width: usize,
+    en_passant_target: Option<Square>
 
 }
 
@@ -85,7 +86,8 @@ impl Board {
 
         Board {
             squares: squares,
-            width: 8
+            width: 8,
+            en_passant_target: None
         }
     }
 
@@ -163,6 +165,27 @@ impl Board {
             (Some((_, PieceSide::CurrentlyMoving)), _) => {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
+
+                if Some(new_pos) == self.en_passant_target {
+                    // En passant move captures pawn one rank up
+                    let captured_square = Square {
+                            rank: new_pos.rank-1,
+                            file: new_pos.file
+                        };
+                    self.set_piece_at_position(None, captured_square)?;
+                }
+
+                if old_piece.unwrap().0 == PieceType::Pawn &&
+                   new_pos.rank - old_pos.rank == 2 {
+                    let en_passant_square = Square {
+                            rank: old_pos.rank+1,
+                            file: old_pos.file
+                        };
+                    // Pawn pushed two squares, set en passant target
+                    self.en_passant_target = Some(en_passant_square);
+                } else {
+                    self.en_passant_target = None;
+                }
                 Ok(())
             }
         }
@@ -225,7 +248,7 @@ impl Board {
             .map(|pos| (pos, Square { file: pos.file - 1, rank: pos.rank + 1}));
         let pawn_capture_right_moves = pawn_positions.iter()
             .map(|pos| (pos, Square { file: pos.file + 1, rank: pos.rank + 1}));
-        let pawn_capture_boards = pawn_capture_left_moves.chain(pawn_capture_right_moves)
+        let pawn_capture_boards = pawn_capture_left_moves.clone().chain(pawn_capture_right_moves.clone())
 
             // The final destination should have an opponent's piece
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(Some((_, PieceSide::MovingNext)))))
@@ -234,7 +257,15 @@ impl Board {
             .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
         possible_moves.extend(pawn_capture_boards);
 
-        // TODO: En passant moves
+        // Append en passant captures
+        let en_passant_boards = pawn_capture_left_moves.chain(pawn_capture_right_moves)
+
+            // The final destination should be the en passant target, set by the opponent's last move
+            .filter(|(_, new_pos)| Some(*new_pos) == self.en_passant_target)
+
+            // Should be able to move there without error
+            .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+        possible_moves.extend(en_passant_boards);
 
         Ok(possible_moves)
     }
@@ -404,6 +435,24 @@ mod test {
         }
     }
 
+    fn check_for_moves(boards: Vec<Board>, expected_moves: Vec<Square>, unexpected_moves: Vec<Square>, piece: Piece) {
+        for square in expected_moves {
+            assert!(
+                boards.clone().into_iter()
+                    .any(|x| x.get_piece_at_position(square).unwrap() == piece),
+                "Didn't find {:?} move at rank {}, file {}", piece.unwrap().0, square.rank, square.file
+                );
+        }
+
+        for square in unexpected_moves {
+            assert!(
+                !boards.clone().into_iter()
+                    .any(|x| x.get_piece_at_position(square).unwrap() == piece),
+                "Found unexpected {:?} move at rank {}, file {}", piece.unwrap().0, square.rank, square.file
+                );
+        }
+    }
+
     mod pawn_moves {
         use super::*;
 
@@ -432,7 +481,8 @@ mod test {
 
             Board {
                 squares: squares,
-                width: 6
+                width: 6,
+                en_passant_target: None
             }
         }
 
@@ -446,26 +496,14 @@ mod test {
                                                  Square { rank: 2, file: 4 },
                                                  Square { rank: 3, file: 1 },
                 ];
-            for square in expected_single_square_pushes {
-                assert!(
-                    moved_boards.clone().into_iter()
-                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
-                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
-                    "Didn't find pawn move at rank {}, file {}", square.rank, square.file
-                    );
-            }
             let unexpected_single_square_pushes = vec![Square { rank: 2, file: 2 },
                                                        Square { rank: 3, file: 5 },
                 ];
-            for square in unexpected_single_square_pushes {
-                assert_eq!(
-                    moved_boards.clone().into_iter()
-                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
-                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
-                    false,
-                    "Found unexpected pawn move at rank {}, file {}", square.rank, square.file
-                    );
-            }
+
+            check_for_moves(moved_boards,
+                            expected_single_square_pushes,
+                            unexpected_single_square_pushes,
+                            Some((PieceType::Pawn, PieceSide::CurrentlyMoving)));
         }
 
         #[test]
@@ -477,45 +515,38 @@ mod test {
             let expected_single_square_pushes = vec![Square { rank: 3, file: 0 },
                                                      Square { rank: 3, file: 4 },
                 ];
-            for square in expected_single_square_pushes {
-                assert!(
-                    moved_boards.clone().into_iter()
-                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
-                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
-                    "Didn't find pawn move at rank {}, file {}", square.rank, square.file
-                    );
-            }
-
             let unexpected_single_square_pushes = vec![Square { rank: 4, file: 1 },
                                                        Square { rank: 3, file: 2 },
                                                        Square { rank: 3, file: 3 },
                                                        Square { rank: 4, file: 5 },
                 ];
-            for square in unexpected_single_square_pushes {
-                assert_eq!(
-                    moved_boards.clone().into_iter()
-                        .any(|x| matches!(x.get_piece_at_position(square).unwrap(),
-                                          Some((PieceType::Pawn, PieceSide::CurrentlyMoving)))),
-                    false,
-                    "Found unexpeted pawn move at rank {}, file {}", square.rank, square.file
-                    );
-            }
+
+            check_for_moves(moved_boards,
+                            expected_single_square_pushes,
+                            unexpected_single_square_pushes,
+                            Some((PieceType::Pawn, PieceSide::CurrentlyMoving)));
         }
 
         // Returns a board with the setup
-        // ...
-        // B.b
-        // .P.
-        // ...
+        // .....
+        // .....
+        // B.ko.
+        // .P.pP
+        // .....
+        // Where o is the en passant target
         fn get_test_board_for_pawn_captures() -> Board {
             let mut board = Board {
-                squares: vec![None; 12],
-                width: 3
+                squares: vec![None; 5*5],
+                width: 5,
+                en_passant_target: Some( Square{rank: 2, file: 3})
             };
 
             board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Square { rank: 1, file: 1 }).unwrap();
             board.set_piece_at_position(Some((PieceType::Bishop, PieceSide::CurrentlyMoving)), Square { rank: 2, file: 0 }).unwrap();
             board.set_piece_at_position(Some((PieceType::Knight, PieceSide::MovingNext)), Square { rank: 2, file: 2 }).unwrap();
+
+            board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Square { rank: 1, file: 4 }).unwrap();
+            board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::MovingNext)), Square { rank: 1, file: 3 }).unwrap();
 
             board
         }
@@ -544,6 +575,21 @@ mod test {
             assert!(
                 moved_boards.into_iter()
                     .all(|x| !matches!(x.get_piece_at_position(Square { rank: 2, file: 0 }).unwrap(), Some((PieceType::Pawn, _))))
+            );
+        }
+
+        #[test]
+        fn captures_en_passant() {
+            let board = get_test_board_for_pawn_captures();
+
+            let moved_boards = board.generate_moves().unwrap();
+
+            // At least one of the moves suggested should have the pawn
+            // take the pawn en passant
+            assert!(
+                moved_boards.into_iter()
+                    .any(|x|    matches!(x.get_piece_at_position(Square { rank: 2, file: 3 }).unwrap(), Some((PieceType::Pawn, _)))
+                             && matches!(x.get_piece_at_position(Square { rank: 1, file: 3 }).unwrap(), None))
             );
         }
     }
