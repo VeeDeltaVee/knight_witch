@@ -465,31 +465,31 @@ mod test {
         use super::*;
 
         // Returns a board with the setup (FEN piece notation)
-        // ......
-        // ....p.
-        // ...p.p
-        // .Pp..P
-        // P.PPP.
-        // ......
+        // .......
+        // .....p.
+        // ....p.p
+        // .Pp...P
+        // P.P.PP.
+        // .......
         fn get_test_board_for_simple_pawn_moves() -> Board {
-            let mut squares = vec![None; 6 * 6];
+            let mut squares = vec![None; 7 * 6];
             squares[6] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
             squares[8] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-            squares[9] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
             squares[10] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[11] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
 
-            squares[13] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-            squares[14] = Some((PieceType::Pawn, PieceSide::MovingNext));
-            squares[17] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[14] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[15] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[19] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
 
-            squares[21] = Some((PieceType::Pawn, PieceSide::MovingNext));
-            squares[23] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[24] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[26] = Some((PieceType::Pawn, PieceSide::MovingNext));
 
-            squares[28] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[33] = Some((PieceType::Pawn, PieceSide::MovingNext));
 
             Board {
                 squares: squares,
-                width: 6,
+                width: 7,
                 en_passant_target: None
             }
         }
@@ -500,12 +500,12 @@ mod test {
             let moved_boards = board.generate_moves().unwrap();
 
             let expected_single_square_pushes = vec![Square { rank: 2, file: 0 },
-                                                 Square { rank: 2, file: 3 },
                                                  Square { rank: 2, file: 4 },
+                                                 Square { rank: 2, file: 5 },
                                                  Square { rank: 3, file: 1 },
                 ];
             let unexpected_single_square_pushes = vec![Square { rank: 2, file: 2 },
-                                                       Square { rank: 3, file: 5 },
+                                                       Square { rank: 3, file: 6 },
                 ];
 
             check_for_moves(moved_boards,
@@ -521,12 +521,12 @@ mod test {
 
             // TODO: A lot of copypaste here, could refactor into a function
             let expected_single_square_pushes = vec![Square { rank: 3, file: 0 },
-                                                     Square { rank: 3, file: 4 },
+                                                     Square { rank: 3, file: 5 },
                 ];
             let unexpected_single_square_pushes = vec![Square { rank: 4, file: 1 },
                                                        Square { rank: 3, file: 2 },
-                                                       Square { rank: 3, file: 3 },
-                                                       Square { rank: 4, file: 5 },
+                                                       Square { rank: 3, file: 4 },
+                                                       Square { rank: 4, file: 6 },
                 ];
 
             check_for_moves(moved_boards,
