@@ -165,27 +165,7 @@ impl Board {
             (Some((_, PieceSide::CurrentlyMoving)), _) => {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
-
-                if Some(new_pos) == self.en_passant_target {
-                    // En passant move captures pawn one rank up
-                    let captured_square = Square {
-                            rank: new_pos.rank-1,
-                            file: new_pos.file
-                        };
-                    self.set_piece_at_position(None, captured_square)?;
-                }
-
-                if old_piece.unwrap().0 == PieceType::Pawn &&
-                   new_pos.rank - old_pos.rank == 2 {
-                    let en_passant_square = Square {
-                            rank: old_pos.rank+1,
-                            file: old_pos.file
-                        };
-                    // Pawn pushed two squares, set en passant target
-                    self.en_passant_target = Some(en_passant_square);
-                } else {
-                    self.en_passant_target = None;
-                }
+                self.en_passant_target = None;
                 Ok(())
             }
         }
@@ -238,7 +218,18 @@ impl Board {
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
 
             // Should be able to move there without error
-            .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+            .filter_map(|(old_pos, new_pos)|
+                self.new_board_with_moved_piece(*old_pos, new_pos)
+                    .ok()
+
+                    // Should set the en_passant_target
+                    .map(|mut board| {
+                        board.en_passant_target = Some(Square {
+                            rank: new_pos.rank - 1,
+                            file: new_pos.file
+                        });
+                        board
+                    }));
 
         possible_moves.extend(double_square_pawn_move_boards);
 
@@ -264,7 +255,16 @@ impl Board {
             .filter(|(_, new_pos)| Some(*new_pos) == self.en_passant_target)
 
             // Should be able to move there without error
-            .filter_map(|(old_pos, new_pos)| self.new_board_with_moved_piece(*old_pos, new_pos).ok());
+            .filter_map(|(old_pos, new_pos)|
+                self.new_board_with_moved_piece(*old_pos, new_pos).ok()
+                    .map(|mut board| {
+                        board.set_piece_at_position(None, Square {
+                            rank: new_pos.rank - 1,
+                            file: new_pos.file
+                        }).unwrap();
+
+                        board
+                    }));
         possible_moves.extend(en_passant_boards);
 
         Ok(possible_moves)
@@ -587,8 +587,8 @@ mod test {
             // At least one of the moves suggested should have the pawn
             // take the pawn en passant
             assert!(
-                moved_boards.into_iter()
-                    .any(|x|    matches!(x.get_piece_at_position(Square { rank: 2, file: 3 }).unwrap(), Some((PieceType::Pawn, _)))
+                moved_boards.iter()
+                    .any(|x| matches!(x.get_piece_at_position(Square { rank: 2, file: 3 }).unwrap(), Some((PieceType::Pawn, _)))
                              && matches!(x.get_piece_at_position(Square { rank: 1, file: 3 }).unwrap(), None))
             );
         }
