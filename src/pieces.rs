@@ -573,18 +573,18 @@ mod test {
             let board = get_test_board_for_simple_pawn_moves();
             let moved_boards = board.generate_moves().unwrap();
 
-            let expected_single_square_pushes = vec![Square { rank: 3, file: 0 },
+            let expected_double_square_pushes = vec![Square { rank: 3, file: 0 },
                                                      Square { rank: 3, file: 5 },
                 ];
-            let unexpected_single_square_pushes = vec![Square { rank: 4, file: 1 },
+            let unexpected_double_square_pushes = vec![Square { rank: 4, file: 1 },
                                                        Square { rank: 3, file: 2 },
                                                        Square { rank: 3, file: 4 },
                                                        Square { rank: 4, file: 6 },
                 ];
 
             check_for_moves(moved_boards,
-                            expected_single_square_pushes,
-                            unexpected_single_square_pushes,
+                            expected_double_square_pushes,
+                            unexpected_double_square_pushes,
                             Some((PieceType::Pawn, PieceSide::CurrentlyMoving)));
         }
 
