@@ -318,14 +318,13 @@ impl Board {
         Ok(possible_moves)
     }
 
-    // TODO: Rest of move impls
     fn generate_knight_moves(&self) -> Result<Vec<Board>, &'static str> {
         let jumps = vec![(-1, 2), (1, 2),
                      (-2,  1),      (2,  1),
                      (-2, -1),      (2, -1),
                         (-1, -2), (1, -2)];
 
-        let pawn_positions = self.get_positions_of_pieces_with_given_side_and_type(
+        let knight_positions = self.get_positions_of_pieces_with_given_side_and_type(
             PieceType::Knight,
             PieceSide::CurrentlyMoving
         )?;
@@ -354,6 +353,7 @@ impl Board {
         Ok(possible_boards)
     }
 
+    // TODO: Rest of move impls
     fn generate_bishop_moves(&self) -> Vec<Board> {
         vec![]
     }
