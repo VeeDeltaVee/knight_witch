@@ -259,7 +259,8 @@ impl Board {
 
             // Should have the intervening space be free
             .filter(|(old_pos, new_pos)|
-                self.check_ray_for_pieces(**old_pos, Direction {rank: 1, file: 0}).rank >= new_pos.rank)
+                self.check_ray_for_pieces(**old_pos, Direction {rank: 1, file: 0}, false )
+                    .rank >= new_pos.rank)
 
             // The final destination should be free
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
@@ -357,10 +358,24 @@ impl Board {
     //
     // If there are no pieces in the given direction, returns the last square that could be reached
     // If there is a piece in the given direction, returns position of that piece
-    fn check_ray_for_pieces(&self, pos: Square, dir: Direction) -> Square {
+    fn check_ray_for_pieces(&self, pos: Square, dir: Direction, can_take: bool) -> Square {
         let mut final_pos = pos;
         while let Ok(new_pos) = self.add_direction_to_position(final_pos, dir) {
-            final_pos = new_pos;
+            match self.add_direction_to_position(final_pos, dir) {
+                Err(_)      => break,
+                Ok(new_pos) => {
+                    match self.get_piece_at_position(new_pos).unwrap() {
+                        Some((_, PieceSide::CurrentlyMoving)) => break,
+                        Some((_, PieceSide::MovingNext)) => {
+                            if can_take {
+                                final_pos = new_pos;
+                            }
+                            break;
+                        },
+                        None => final_pos = new_pos,
+                    }
+                }
+            }
         }
 
         final_pos
@@ -512,17 +527,17 @@ mod test {
         // .......
         fn get_test_board_for_simple_pawn_moves() -> Board {
             let mut squares = vec![None; 7 * 6];
-            squares[6] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-            squares[8] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-            squares[10] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[7] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[9] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
             squares[11] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[12] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
 
-            squares[14] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-            squares[15] = Some((PieceType::Pawn, PieceSide::MovingNext));
-            squares[19] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[15] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+            squares[16] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[20] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
 
-            squares[24] = Some((PieceType::Pawn, PieceSide::MovingNext));
-            squares[26] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[25] = Some((PieceType::Pawn, PieceSide::MovingNext));
+            squares[27] = Some((PieceType::Pawn, PieceSide::MovingNext));
 
             squares[33] = Some((PieceType::Pawn, PieceSide::MovingNext));
 
@@ -546,10 +561,6 @@ mod test {
             let unexpected_single_square_pushes = vec![Square { rank: 2, file: 2 },
                                                        Square { rank: 3, file: 6 },
                 ];
-
-            for board in moved_boards.clone() {
-                print!("{}", board);
-            }
 
             check_for_moves(moved_boards,
                             expected_single_square_pushes,
