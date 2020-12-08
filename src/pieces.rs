@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum PieceType {
     Pawn,
@@ -48,6 +50,43 @@ pub struct Board {
     width: usize,
     en_passant_target: Option<Square>
 
+}
+
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Board:\n")?;
+        // We want to print rank 0 at the bottom
+        for rank in (0..self.squares.len() / self.width).rev() {
+            write!(f, "\t")?;
+            for file in 0..self.width {
+                let square = Square{ rank: rank, file: file};
+                if self.en_passant_target == Some(square) {
+                    write!(f, "*")?;
+                    continue;
+                }
+
+                let piece = self.get_piece_at_position(square).unwrap();
+                let representation = match piece {
+                    None                                                  => ".",
+                    Some((PieceType::Pawn, PieceSide::CurrentlyMoving))   => "P",
+                    Some((PieceType::Rook, PieceSide::CurrentlyMoving))   => "R",
+                    Some((PieceType::Knight, PieceSide::CurrentlyMoving)) => "N",
+                    Some((PieceType::Bishop, PieceSide::CurrentlyMoving)) => "B",
+                    Some((PieceType::Queen, PieceSide::CurrentlyMoving))  => "Q",
+                    Some((PieceType::King, PieceSide::CurrentlyMoving))   => "K",
+                    Some((PieceType::Pawn, PieceSide::MovingNext))        => "p",
+                    Some((PieceType::Rook, PieceSide::MovingNext))        => "r",
+                    Some((PieceType::Knight, PieceSide::MovingNext))      => "n",
+                    Some((PieceType::Bishop, PieceSide::MovingNext))      => "b",
+                    Some((PieceType::Queen, PieceSide::MovingNext))       => "q",
+                    Some((PieceType::King, PieceSide::MovingNext))        => "k"
+                };
+                write!(f, "{}", representation)?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
 }
 
 impl Board {
@@ -507,6 +546,10 @@ mod test {
             let unexpected_single_square_pushes = vec![Square { rank: 2, file: 2 },
                                                        Square { rank: 3, file: 6 },
                 ];
+
+            for board in moved_boards.clone() {
+                print!("{}", board);
+            }
 
             check_for_moves(moved_boards,
                             expected_single_square_pushes,
