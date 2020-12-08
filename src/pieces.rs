@@ -330,7 +330,7 @@ impl Board {
         )?;
 
         let mut possible_boards = vec![];
-        for old_pos in pawn_positions {
+        for old_pos in knight_positions {
             let new_boards = jumps.iter()
                 .map(|(file, rank)| Direction {file: *file, rank: *rank})
 
