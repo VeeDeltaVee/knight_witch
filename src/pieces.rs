@@ -573,7 +573,6 @@ mod test {
             let board = get_test_board_for_simple_pawn_moves();
             let moved_boards = board.generate_moves().unwrap();
 
-            // TODO: A lot of copypaste here, could refactor into a function
             let expected_single_square_pushes = vec![Square { rank: 3, file: 0 },
                                                      Square { rank: 3, file: 5 },
                 ];
