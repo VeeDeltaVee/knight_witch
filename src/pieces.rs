@@ -91,6 +91,14 @@ impl Board {
         }
     }
 
+    pub fn with_pieces(pieces: Vec<Piece>, width: usize) -> Self {
+        Board {
+            squares: pieces,
+            width: width,
+            en_passant_target: None
+        }
+    }
+
     // Generates a list of future board states that are possible from the
     // current board state. Does _not_ flip the piece sides or the board.
     pub fn generate_moves(&self) -> Result<Vec<Board>, &'static str> {
@@ -591,6 +599,40 @@ mod test {
                     .any(|x| matches!(x.get_piece_at_position(Square { rank: 2, file: 3 }).unwrap(), Some((PieceType::Pawn, _)))
                              && matches!(x.get_piece_at_position(Square { rank: 1, file: 3 }).unwrap(), None))
             );
+        }
+    }
+
+    mod king_moves {
+        use super::*;
+
+        fn get_board_for_simple_king_moves() -> Board {
+            let mut pieces = vec![None; 9];
+            pieces[4] = Some((PieceType::King, PieceSide::CurrentlyMoving));
+
+            Board::with_pieces(pieces, 3)
+        }
+
+        #[test]
+        fn moves_one_step_nearby() {
+            let board = get_board_for_simple_king_moves();
+
+            let moved_boards = board.generate_moves().unwrap();
+
+            // every place other than the centre should have a king move
+            for rank in 0..2 {
+                for file in 0..2 {
+                    if (rank, file) != (1, 1) {
+                        assert!(
+                            moved_boards.iter()
+                                .any(|x|
+                                    matches!(x.get_piece_at_position( Square {rank: rank, file: file}).unwrap(),
+                                        Some((PieceType::King, _))) &&
+                                    matches!(x.get_piece_at_position( Square {rank: 1, file: 1}).unwrap(),
+                                        None))
+                        );
+                    }
+                }
+            }
         }
     }
 }
