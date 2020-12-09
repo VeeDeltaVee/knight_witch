@@ -725,7 +725,6 @@ mod test {
                                       Square { rank: 1, file: 2 },
                                       Square { rank: 1, file: 0 },
 
-
                                       Square { rank: 3, file: 2 },
                                       Square { rank: 3, file: 4 },
                                       Square { rank: 2, file: 1 },
@@ -742,6 +741,105 @@ mod test {
                             expected_moves,
                             unexpected_moves,
                             Some((PieceType::Knight, PieceSide::CurrentlyMoving)));
+        }
+    }
+
+    // Returns a board with the setup
+    // ........
+    // ..p.p...
+    // .......P
+    // ..X.....
+    // .P......
+    // ....XP..
+    // ..p.....
+    // ........
+    // with X as a straight-moving piece (bishop, rook, or queen)
+    fn get_board_for_simple_straight_moves(piece_type: PieceType) -> Board {
+        let mut board = Board::with_pieces(vec![None; 8*8], 8);
+
+        board.set_piece_at_position(Some((piece_type, PieceSide::CurrentlyMoving)), Square { rank: 2, file: 4 }).unwrap();
+        board.set_piece_at_position(Some((piece_type, PieceSide::CurrentlyMoving)), Square { rank: 4, file: 2 }).unwrap();
+
+        board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Square { rank: 2, file: 5 }).unwrap();
+        board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Square { rank: 3, file: 1 }).unwrap();
+        board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::CurrentlyMoving)), Square { rank: 5, file: 7 }).unwrap();
+
+        board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::MovingNext)), Square { rank: 1, file: 2 }).unwrap();
+        board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::MovingNext)), Square { rank: 6, file: 2 }).unwrap();
+        board.set_piece_at_position(Some((PieceType::Pawn, PieceSide::MovingNext)), Square { rank: 6, file: 4 }).unwrap();
+
+        board
+    }
+
+    mod bishop_moves {
+        use super::*;
+
+        #[test]
+        fn moves_diagonally() {
+            let board = get_board_for_simple_straight_moves(PieceType::Bishop);
+
+            let moved_boards = board.generate_moves().unwrap();
+
+            let expected_moves = vec![Square { rank: 1, file: 3 }, Square { rank: 0, file: 2 },
+                                      Square { rank: 1, file: 5 }, Square { rank: 0, file: 6 },
+                                      Square { rank: 3, file: 3 },
+                                      Square { rank: 3, file: 5 }, Square { rank: 4, file: 6 },
+
+                                      Square { rank: 5, file: 3 }, Square { rank: 6, file: 4 },
+                                      Square { rank: 5, file: 1 }, Square { rank: 6, file: 0 },
+                ];
+
+            let unexpected_moves = vec![Square { rank: 2, file: 3 }, Square { rank: 2, file: 5 },
+                                        Square { rank: 1, file: 4 }, Square { rank: 3, file: 4 },
+                                        Square { rank: 4, file: 1 }, Square { rank: 4, file: 3 },
+                                        Square { rank: 3, file: 2 }, Square { rank: 5, file: 2 },
+
+                                        Square { rank: 5, file: 7 },
+                                        Square { rank: 3, file: 1 }, Square { rank: 2, file: 0 },
+                                        Square { rank: 7, file: 5 },
+                ];
+
+            check_for_moves(moved_boards,
+                            expected_moves,
+                            unexpected_moves,
+                            Some((PieceType::Bishop, PieceSide::CurrentlyMoving)));
+        }
+    }
+
+    mod rook_moves {
+        use super::*;
+
+        #[test]
+        fn moves_orthogonally() {
+            let board = get_board_for_simple_straight_moves(PieceType::Rook);
+
+            let moved_boards = board.generate_moves().unwrap();
+
+            let expected_moves = vec![Square { rank: 2, file: 3 }, Square { rank: 2, file: 2 }, Square { rank: 2, file: 1 }, Square { rank: 2, file: 0 },
+                                      Square { rank: 1, file: 4 }, Square { rank: 0, file: 4 },
+                                      Square { rank: 3, file: 4 }, Square { rank: 4, file: 4 }, Square { rank: 5, file: 4 }, Square { rank: 6, file: 4 },
+
+                                      Square { rank: 4, file: 1 }, Square { rank: 4, file: 0 },
+                                      Square { rank: 4, file: 3 }, Square { rank: 4, file: 4 }, Square { rank: 4, file: 5 },
+                                      Square { rank: 4, file: 6 }, Square { rank: 4, file: 7 },
+                                      Square { rank: 3, file: 2 }, Square { rank: 2, file: 2 }, Square { rank: 1, file: 2 },
+                                      Square { rank: 5, file: 2 }, Square { rank: 6, file: 2 },
+                ];
+            let unexpected_moves = vec![Square { rank: 2, file: 5 }, Square { rank: 2, file: 6 },
+                                        Square { rank: 6, file: 4 },
+                                        Square { rank: 0, file: 2 },
+                                        Square { rank: 7, file: 2 },
+
+                                        Square { rank: 1, file: 3 }, Square { rank: 1, file: 5 },
+                                        Square { rank: 3, file: 3 }, Square { rank: 3, file: 5 },
+                                        Square { rank: 5, file: 3 }, Square { rank: 5, file: 1 },
+                                        Square { rank: 3, file: 1 },
+                ];
+
+            check_for_moves(moved_boards,
+                            expected_moves,
+                            unexpected_moves,
+                            Some((PieceType::Rook, PieceSide::CurrentlyMoving)));
         }
     }
 
