@@ -1,5 +1,5 @@
-mod pieces;
+mod board;
 
 fn main() {
-    pieces::Board::default();
+    board::Board::default();
 }
