@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceSide, PieceType, Square};
+use super::{Direction, PieceType, Side, Square};
 
 pub trait KnightMovement {
     fn generate_knight_moves(&self) -> Result<Vec<Self>, &'static str>
@@ -21,10 +21,8 @@ impl KnightMovement for Board {
             (1, -2),
         ];
 
-        let knight_positions = self.get_positions_of_pieces_with_given_side_and_type(
-            PieceType::Knight,
-            PieceSide::CurrentlyMoving,
-        )?;
+        let knight_positions =
+            self.get_positions_of_pieces_with_given_side_and_type(PieceType::Knight, Side::White)?;
 
         let mut possible_boards = vec![];
         for old_pos in knight_positions {
@@ -40,8 +38,8 @@ impl KnightMovement for Board {
                 .filter(
                     |new_pos| match self.get_piece_at_position(*new_pos).unwrap() {
                         None => true,
-                        Some((_, PieceSide::MovingNext)) => true,
-                        Some((_, PieceSide::CurrentlyMoving)) => false,
+                        Some((_, Side::Black)) => true,
+                        Some((_, Side::White)) => false,
                     },
                 )
                 // Should be able to move there without error
@@ -71,51 +69,51 @@ mod test {
 
         board
             .set_piece_at_position(
-                Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Knight, Side::White)),
                 Square { rank: 1, file: 3 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Knight, Side::White)),
                 Square { rank: 3, file: 1 },
             )
             .unwrap();
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 2, file: 3 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 0, file: 5 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 5, file: 0 },
             )
             .unwrap();
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 2, file: 5 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 3, file: 4 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 4, file: 3 },
             )
             .unwrap();
@@ -150,7 +148,7 @@ mod test {
             moved_boards,
             expected_moves,
             unexpected_moves,
-            Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
+            Some((PieceType::Knight, Side::White)),
         );
     }
 }

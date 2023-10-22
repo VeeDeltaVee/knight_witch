@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceSide, PieceType, Square};
+use super::{Direction, PieceType, Side, Square};
 
 pub trait PawnMovement {
     fn generate_pawn_moves(&self) -> Result<Vec<Self>, &'static str>
@@ -11,22 +11,33 @@ pub trait PawnMovement {
 impl PawnMovement for Board {
     fn generate_pawn_moves(&self) -> Result<Vec<Board>, &'static str> {
         let mut possible_moves = vec![];
-        let pawn_positions = self.get_positions_of_pieces_with_given_side_and_type(
-            PieceType::Pawn,
-            PieceSide::CurrentlyMoving,
-        )?;
+        let pawn_positions =
+            self.get_positions_of_pieces_with_given_side_and_type(PieceType::Pawn, Side::White)?;
+
+        let single_move_offset: isize = match self.current_move {
+            Side::White => 1,
+            Side::Black => -1,
+        };
+
+        let starting_rank_for_current_side = match self.current_move {
+            Side::White => 1,
+            Side::Black => self.width - 1,
+        };
+
+        let current_side = self.current_move;
+        let opposite_side = current_side.flip();
 
         // Append single square pawn moves
         let single_square_pawn_move_boards = pawn_positions
             .iter()
-            .map(|pos| {
-                (
+            .filter_map(|pos| {
+                Some((
                     pos,
                     Square {
                         file: pos.file,
-                        rank: pos.rank + 1,
+                        rank: pos.rank.checked_add_signed(single_move_offset)?,
                     },
-                )
+                ))
             })
             // The final destination should be free
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
@@ -39,22 +50,35 @@ impl PawnMovement for Board {
         // Append double square pawn moves
         let double_square_pawn_move_boards = pawn_positions
             .iter()
-            .map(|pos| {
-                (
+            .filter_map(|pos| {
+                Some((
                     pos,
                     Square {
                         file: pos.file,
-                        rank: pos.rank + 2,
+                        rank: pos.rank.checked_add_signed(2 * single_move_offset)?,
                     },
-                )
+                ))
             })
             // Should start from second rank
-            .filter(|(old_pos, _)| old_pos.rank == 1)
+            .filter(|(old_pos, _)| old_pos.rank == starting_rank_for_current_side)
             // Should have the intervening space be free
             .filter(|(old_pos, new_pos)| {
-                self.check_ray_for_pieces(**old_pos, Direction { rank: 1, file: 0 }, false)
-                    .rank
-                    >= new_pos.rank
+                let ray_rank = self
+                    .check_ray_for_pieces(
+                        **old_pos,
+                        Direction {
+                            rank: single_move_offset,
+                            file: 0,
+                        },
+                        false,
+                    )
+                    .rank;
+
+                if single_move_offset > 0 {
+                    ray_rank >= new_pos.rank
+                } else {
+                    ray_rank <= new_pos.rank
+                }
             })
             // The final destination should be free
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
@@ -63,45 +87,51 @@ impl PawnMovement for Board {
                 self.new_board_with_moved_piece(*old_pos, new_pos)
                     .ok()
                     // Should set the en_passant_target
-                    .map(|mut board| {
+                    .and_then(|mut board| {
                         board.en_passant_target = Some(Square {
-                            rank: new_pos.rank - 1,
+                            rank: new_pos.rank.checked_add_signed(-single_move_offset)?,
                             file: new_pos.file,
                         });
-                        board
+                        Some(board)
                     })
             });
 
         possible_moves.extend(double_square_pawn_move_boards);
 
         // Append pawn captures
-        let pawn_capture_left_moves = pawn_positions.iter().filter(|pos| pos.file > 0).map(|pos| {
-            (
-                pos,
-                Square {
-                    file: pos.file - 1,
-                    rank: pos.rank + 1,
-                },
-            )
-        });
-        let pawn_capture_right_moves = pawn_positions.iter().map(|pos| {
-            (
-                pos,
-                Square {
-                    file: pos.file + 1,
-                    rank: pos.rank + 1,
-                },
-            )
-        });
+        let pawn_capture_left_moves =
+            pawn_positions
+                .iter()
+                .filter(|pos| pos.file > 0)
+                .filter_map(|pos| {
+                    Some((
+                        pos,
+                        Square {
+                            file: pos.file - 1,
+                            rank: pos.rank.checked_add_signed(single_move_offset)?,
+                        },
+                    ))
+                });
+        let pawn_capture_right_moves = pawn_positions
+            .iter()
+            .filter(|pos| pos.file < self.width - 1)
+            .filter_map(|pos| {
+                Some((
+                    pos,
+                    Square {
+                        file: pos.file + 1,
+                        rank: pos.rank.checked_add_signed(single_move_offset)?,
+                    },
+                ))
+            });
+
         let pawn_capture_boards = pawn_capture_left_moves
             .clone()
             .chain(pawn_capture_right_moves.clone())
             // The final destination should have an opponent's piece
             .filter(|(_, new_pos)| {
-                matches!(
-                    self.get_piece_at_position(*new_pos),
-                    Ok(Some((_, PieceSide::MovingNext)))
-                )
+                self.get_piece_at_position(*new_pos)
+                    .is_ok_and(|piece| piece.is_some_and(|(_, side)| side == opposite_side))
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
@@ -118,18 +148,18 @@ impl PawnMovement for Board {
             .filter_map(|(old_pos, new_pos)| {
                 self.new_board_with_moved_piece(*old_pos, new_pos)
                     .ok()
-                    .map(|mut board| {
+                    .and_then(|mut board| {
                         board
                             .set_piece_at_position(
                                 None,
                                 Square {
-                                    rank: new_pos.rank - 1,
+                                    rank: new_pos.rank.checked_add_signed(-single_move_offset)?,
                                     file: new_pos.file,
                                 },
                             )
                             .unwrap();
 
-                        board
+                        Some(board)
                     })
             });
         possible_moves.extend(en_passant_boards);
@@ -148,36 +178,37 @@ mod test {
             squares: vec![None; 5 * 5],
             width: 5,
             en_passant_target: Some(Square { rank: 2, file: 3 }),
+            current_move: Side::White,
         };
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 1, file: 1 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Bishop, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Bishop, Side::White)),
                 Square { rank: 2, file: 0 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Knight, PieceSide::MovingNext)),
+                Some((PieceType::Knight, Side::Black)),
                 Square { rank: 2, file: 2 },
             )
             .unwrap();
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 1, file: 4 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 1, file: 3 },
             )
             .unwrap();
@@ -194,24 +225,25 @@ mod test {
     // .......
     fn get_test_board_for_simple_pawn_moves() -> Board {
         let mut squares = vec![None; 7 * 6];
-        squares[7] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-        squares[9] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-        squares[11] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-        squares[12] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+        squares[7] = Some((PieceType::Pawn, Side::White));
+        squares[9] = Some((PieceType::Pawn, Side::White));
+        squares[11] = Some((PieceType::Pawn, Side::White));
+        squares[12] = Some((PieceType::Pawn, Side::White));
 
-        squares[15] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
-        squares[16] = Some((PieceType::Pawn, PieceSide::MovingNext));
-        squares[20] = Some((PieceType::Pawn, PieceSide::CurrentlyMoving));
+        squares[15] = Some((PieceType::Pawn, Side::White));
+        squares[16] = Some((PieceType::Pawn, Side::Black));
+        squares[20] = Some((PieceType::Pawn, Side::White));
 
-        squares[25] = Some((PieceType::Pawn, PieceSide::MovingNext));
-        squares[27] = Some((PieceType::Pawn, PieceSide::MovingNext));
+        squares[25] = Some((PieceType::Pawn, Side::Black));
+        squares[27] = Some((PieceType::Pawn, Side::Black));
 
-        squares[33] = Some((PieceType::Pawn, PieceSide::MovingNext));
+        squares[33] = Some((PieceType::Pawn, Side::Black));
 
         Board {
             squares,
             width: 7,
             en_passant_target: None,
+            current_move: Side::White,
         }
     }
 
@@ -233,7 +265,7 @@ mod test {
             moved_boards,
             expected_single_square_pushes,
             unexpected_single_square_pushes,
-            Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+            Some((PieceType::Pawn, Side::White)),
         );
     }
 
@@ -255,7 +287,7 @@ mod test {
             moved_boards,
             expected_double_square_pushes,
             unexpected_double_square_pushes,
-            Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+            Some((PieceType::Pawn, Side::White)),
         );
     }
 

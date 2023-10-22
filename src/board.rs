@@ -18,12 +18,21 @@ pub enum PieceType {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub enum PieceSide {
-    CurrentlyMoving,
-    MovingNext,
+pub enum Side {
+    White,
+    Black,
 }
 
-pub type Piece = Option<(PieceType, PieceSide)>;
+impl Side {
+    fn flip(self: Self) -> Self {
+        match self {
+            Self::White => Self::Black,
+            Self::Black => Self::White,
+        }
+    }
+}
+
+pub type Piece = Option<(PieceType, Side)>;
 
 // Represents a square on the board
 //
@@ -56,6 +65,9 @@ pub struct Board {
     squares: Vec<Piece>,
     width: usize,
     en_passant_target: Option<Square>,
+
+    // Which side has to make a move next
+    current_move: Side,
 }
 
 impl fmt::Display for Board {
@@ -77,18 +89,18 @@ impl fmt::Display for Board {
                 let piece = self.get_piece_at_position(square).unwrap();
                 let representation = match piece {
                     None => ".",
-                    Some((PieceType::Pawn, PieceSide::CurrentlyMoving)) => "P",
-                    Some((PieceType::Rook, PieceSide::CurrentlyMoving)) => "R",
-                    Some((PieceType::Knight, PieceSide::CurrentlyMoving)) => "N",
-                    Some((PieceType::Bishop, PieceSide::CurrentlyMoving)) => "B",
-                    Some((PieceType::Queen, PieceSide::CurrentlyMoving)) => "Q",
-                    Some((PieceType::King, PieceSide::CurrentlyMoving)) => "K",
-                    Some((PieceType::Pawn, PieceSide::MovingNext)) => "p",
-                    Some((PieceType::Rook, PieceSide::MovingNext)) => "r",
-                    Some((PieceType::Knight, PieceSide::MovingNext)) => "n",
-                    Some((PieceType::Bishop, PieceSide::MovingNext)) => "b",
-                    Some((PieceType::Queen, PieceSide::MovingNext)) => "q",
-                    Some((PieceType::King, PieceSide::MovingNext)) => "k",
+                    Some((PieceType::Pawn, Side::White)) => "P",
+                    Some((PieceType::Rook, Side::White)) => "R",
+                    Some((PieceType::Knight, Side::White)) => "N",
+                    Some((PieceType::Bishop, Side::White)) => "B",
+                    Some((PieceType::Queen, Side::White)) => "Q",
+                    Some((PieceType::King, Side::White)) => "K",
+                    Some((PieceType::Pawn, Side::Black)) => "p",
+                    Some((PieceType::Rook, Side::Black)) => "r",
+                    Some((PieceType::Knight, Side::Black)) => "n",
+                    Some((PieceType::Bishop, Side::Black)) => "b",
+                    Some((PieceType::Queen, Side::Black)) => "q",
+                    Some((PieceType::King, Side::Black)) => "k",
                 };
                 write!(f, "{}", representation)?;
             }
@@ -102,27 +114,27 @@ impl Board {
     // Construct a default board
     pub fn default() -> Board {
         let mut white_back_rank = vec![
-            Some((PieceType::Rook, PieceSide::CurrentlyMoving)),
-            Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
-            Some((PieceType::Bishop, PieceSide::CurrentlyMoving)),
-            Some((PieceType::Queen, PieceSide::CurrentlyMoving)),
-            Some((PieceType::King, PieceSide::CurrentlyMoving)),
-            Some((PieceType::Bishop, PieceSide::CurrentlyMoving)),
-            Some((PieceType::Knight, PieceSide::CurrentlyMoving)),
-            Some((PieceType::Rook, PieceSide::CurrentlyMoving)),
+            Some((PieceType::Rook, Side::White)),
+            Some((PieceType::Knight, Side::White)),
+            Some((PieceType::Bishop, Side::White)),
+            Some((PieceType::Queen, Side::White)),
+            Some((PieceType::King, Side::White)),
+            Some((PieceType::Bishop, Side::White)),
+            Some((PieceType::Knight, Side::White)),
+            Some((PieceType::Rook, Side::White)),
         ];
-        let mut white_pawn_rank = vec![Some((PieceType::Pawn, PieceSide::CurrentlyMoving)); 8];
+        let mut white_pawn_rank = vec![Some((PieceType::Pawn, Side::White)); 8];
         let mut empty_ranks = vec![None; 8 * 4];
-        let mut black_pawn_rank = vec![Some((PieceType::Pawn, PieceSide::MovingNext)); 8];
+        let mut black_pawn_rank = vec![Some((PieceType::Pawn, Side::Black)); 8];
         let mut black_back_rank = vec![
-            Some((PieceType::Rook, PieceSide::MovingNext)),
-            Some((PieceType::Knight, PieceSide::MovingNext)),
-            Some((PieceType::Bishop, PieceSide::MovingNext)),
-            Some((PieceType::Queen, PieceSide::MovingNext)),
-            Some((PieceType::King, PieceSide::MovingNext)),
-            Some((PieceType::Bishop, PieceSide::MovingNext)),
-            Some((PieceType::Knight, PieceSide::MovingNext)),
-            Some((PieceType::Rook, PieceSide::MovingNext)),
+            Some((PieceType::Rook, Side::Black)),
+            Some((PieceType::Knight, Side::Black)),
+            Some((PieceType::Bishop, Side::Black)),
+            Some((PieceType::Queen, Side::Black)),
+            Some((PieceType::King, Side::Black)),
+            Some((PieceType::Bishop, Side::Black)),
+            Some((PieceType::Knight, Side::Black)),
+            Some((PieceType::Rook, Side::Black)),
         ];
 
         let mut squares = vec![];
@@ -136,6 +148,7 @@ impl Board {
             squares: squares,
             width: 8,
             en_passant_target: None,
+            current_move: Side::White,
         }
     }
 
@@ -144,11 +157,12 @@ impl Board {
             squares: pieces,
             width: width,
             en_passant_target: None,
+            current_move: Side::White,
         }
     }
 
     // Generates a list of future board states that are possible from the
-    // current board state. Does _not_ flip the piece sides or the board.
+    // current board state.
     pub fn generate_moves(&self) -> Result<Vec<Board>, &'static str> {
         let mut moves = self.generate_pawn_moves()?;
         moves.append(&mut self.generate_knight_moves()?);
@@ -166,7 +180,7 @@ impl Board {
     pub fn get_piece_at_position(
         &self,
         square: Square,
-    ) -> Result<Option<(PieceType, PieceSide)>, &'static str> {
+    ) -> Result<Option<(PieceType, Side)>, &'static str> {
         if !self.is_valid_square(square) {
             Err("Position out of bounds")
         } else {
@@ -217,15 +231,17 @@ impl Board {
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square) -> Result<(), &'static str> {
         let old_piece = self.get_piece_at_position(old_pos)?;
         let new_piece = self.get_piece_at_position(new_pos)?;
+        let currently_moving_side = self.current_move;
+        let non_moving_side = self.current_move.flip();
         match (old_piece, new_piece) {
             (None, _) => Err("Can't make move, old_pos doesn't have piece"),
-            (Some((_, PieceSide::MovingNext)), _) => {
+            (Some((_, non_moving_side)), _) => {
                 Err("Can't make move, piece at old_pos isn't CurrentlyMoving")
             }
-            (_, Some((_, PieceSide::CurrentlyMoving))) => {
+            (_, Some((_, currently_moving_side))) => {
                 Err("Can't make move, friendly piece exists at new_pos")
             }
-            (Some((_, PieceSide::CurrentlyMoving)), _) => {
+            (Some((_, currently_moving_side)), _) => {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
                 self.en_passant_target = None;
@@ -272,7 +288,7 @@ impl Board {
     fn get_positions_of_pieces_with_given_side_and_type(
         &self,
         piece_type: PieceType,
-        piece_side: PieceSide,
+        piece_side: Side,
     ) -> Result<Vec<Square>, &'static str> {
         self.squares
             .iter()
@@ -292,8 +308,8 @@ impl Board {
             match self.add_direction_to_position(final_pos, dir) {
                 Err(_) => break,
                 Ok(new_pos) => match self.get_piece_at_position(new_pos).unwrap() {
-                    Some((_, PieceSide::CurrentlyMoving)) => break,
-                    Some((_, PieceSide::MovingNext)) => {
+                    Some((_, Side::White)) => break,
+                    Some((_, Side::Black)) => {
                         if can_take {
                             final_pos = new_pos;
                         }
@@ -424,14 +440,11 @@ mod test {
             let board = Board::default();
 
             for i in 0..16 {
-                assert!(matches!(
-                    board.squares[i],
-                    Some((_, PieceSide::CurrentlyMoving))
-                ));
+                assert!(matches!(board.squares[i], Some((_, Side::White))));
             }
 
             for i in 48..64 {
-                assert!(matches!(board.squares[i], Some((_, PieceSide::MovingNext))));
+                assert!(matches!(board.squares[i], Some((_, Side::Black))));
             }
         }
     }
@@ -450,52 +463,46 @@ mod test {
         let mut board = Board::with_pieces(vec![None; 8 * 8], 8);
 
         board
-            .set_piece_at_position(
-                Some((piece_type, PieceSide::CurrentlyMoving)),
-                Square { rank: 2, file: 4 },
-            )
+            .set_piece_at_position(Some((piece_type, Side::White)), Square { rank: 2, file: 4 })
             .unwrap();
         board
-            .set_piece_at_position(
-                Some((piece_type, PieceSide::CurrentlyMoving)),
-                Square { rank: 4, file: 2 },
-            )
+            .set_piece_at_position(Some((piece_type, Side::White)), Square { rank: 4, file: 2 })
             .unwrap();
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 2, file: 5 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 3, file: 1 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Pawn, Side::White)),
                 Square { rank: 5, file: 7 },
             )
             .unwrap();
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 1, file: 2 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 6, file: 2 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, PieceSide::MovingNext)),
+                Some((PieceType::Pawn, Side::Black)),
                 Square { rank: 6, file: 4 },
             )
             .unwrap();
@@ -545,7 +552,7 @@ mod test {
                 moved_boards,
                 expected_moves,
                 unexpected_moves,
-                Some((PieceType::Bishop, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Bishop, Side::White)),
             );
         }
     }
@@ -602,7 +609,7 @@ mod test {
                 moved_boards,
                 expected_moves,
                 unexpected_moves,
-                Some((PieceType::Rook, PieceSide::CurrentlyMoving)),
+                Some((PieceType::Rook, Side::White)),
             );
         }
     }
@@ -612,7 +619,7 @@ mod test {
 
         fn get_board_for_simple_king_moves() -> Board {
             let mut pieces = vec![None; 9];
-            pieces[4] = Some((PieceType::King, PieceSide::CurrentlyMoving));
+            pieces[4] = Some((PieceType::King, Side::White));
 
             Board::with_pieces(pieces, 3)
         }
