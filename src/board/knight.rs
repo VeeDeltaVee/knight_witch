@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceType, Side, Square};
+use super::{Direction, PieceType, Side};
 
 pub trait KnightMovement {
     fn generate_knight_moves(&self) -> Result<Vec<Self>, &'static str>
@@ -56,6 +56,7 @@ impl KnightMovement for Board {
 mod test {
     use super::*;
     use crate::board::test_utils::check_for_moves;
+    use crate::board::Square;
 
     // Returns a board with the setup
     // P.....

@@ -34,6 +34,14 @@ impl Side {
 
 pub type Piece = Option<(PieceType, Side)>;
 
+pub fn get_piece_side(piece: Piece) -> Option<Side> {
+    piece.map(|(_, side)| side)
+}
+
+pub fn get_piece_type(piece: Piece) -> Option<PieceType> {
+    piece.map(|(t, _)| t)
+}
+
 // Represents a square on the board
 //
 // File counts from the left, starts at 0
@@ -231,22 +239,21 @@ impl Board {
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square) -> Result<(), &'static str> {
         let old_piece = self.get_piece_at_position(old_pos)?;
         let new_piece = self.get_piece_at_position(new_pos)?;
-        let currently_moving_side = self.current_move;
-        let non_moving_side = self.current_move.flip();
-        match (old_piece, new_piece) {
-            (None, _) => Err("Can't make move, old_pos doesn't have piece"),
-            (Some((_, non_moving_side)), _) => {
-                Err("Can't make move, piece at old_pos isn't CurrentlyMoving")
-            }
-            (_, Some((_, currently_moving_side))) => {
-                Err("Can't make move, friendly piece exists at new_pos")
-            }
-            (Some((_, currently_moving_side)), _) => {
+
+        let is_old_piece_currently_moving = get_piece_side(old_piece)
+            .ok_or("Can't make move, old_pos doesn't have piece")?
+            == self.current_move;
+        let is_new_piece_ours = get_piece_side(new_piece).is_some_and(|s| s == self.current_move);
+
+        match (is_old_piece_currently_moving, is_new_piece_ours) {
+            (true, false) => {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
                 self.en_passant_target = None;
                 Ok(())
             }
+            (false, _) => Err("Can't make move, piece at old_pos isn't CurrentlyMoving"),
+            (_, true) => Err("Can't make move, friendly piece exists at new_pos"),
         }
     }
 
