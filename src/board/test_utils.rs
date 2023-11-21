@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Piece, Square};
+use super::{Piece, PieceType, Side, Square};
 
 pub fn check_for_moves(
     boards: Vec<Board>,
@@ -33,4 +33,65 @@ pub fn check_for_moves(
             square.file
         );
     }
+}
+
+// Returns a board with the setup
+// ........
+// ..p.p...
+// .......P
+// ..X.....
+// .P......
+// ....XP..
+// ..p.....
+// ........
+// with X as a straight-moving piece (bishop, rook, or queen)
+pub fn get_board_for_simple_straight_moves(piece_type: PieceType) -> Board {
+    let mut board = Board::with_pieces(vec![None; 8 * 8], 8);
+
+    board
+        .set_piece_at_position(Some((piece_type, Side::White)), Square { rank: 2, file: 4 })
+        .unwrap();
+    board
+        .set_piece_at_position(Some((piece_type, Side::White)), Square { rank: 4, file: 2 })
+        .unwrap();
+
+    board
+        .set_piece_at_position(
+            Some((PieceType::Pawn, Side::White)),
+            Square { rank: 2, file: 5 },
+        )
+        .unwrap();
+    board
+        .set_piece_at_position(
+            Some((PieceType::Pawn, Side::White)),
+            Square { rank: 3, file: 1 },
+        )
+        .unwrap();
+    board
+        .set_piece_at_position(
+            Some((PieceType::Pawn, Side::White)),
+            Square { rank: 5, file: 7 },
+        )
+        .unwrap();
+
+    board
+        .set_piece_at_position(
+            Some((PieceType::Pawn, Side::Black)),
+            Square { rank: 1, file: 2 },
+        )
+        .unwrap();
+    board
+        .set_piece_at_position(
+            Some((PieceType::Pawn, Side::Black)),
+            Square { rank: 6, file: 2 },
+        )
+        .unwrap();
+    board
+        .set_piece_at_position(
+            Some((PieceType::Pawn, Side::Black)),
+            Square { rank: 6, file: 4 },
+        )
+        .unwrap();
+
+    board
 }
