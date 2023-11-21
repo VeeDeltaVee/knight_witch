@@ -7,7 +7,7 @@ use std::fmt;
 
 use self::knight::KnightMovement;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -17,7 +17,7 @@ pub enum PieceType {
     King,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Side {
     White,
     Black,
@@ -42,6 +42,24 @@ pub fn get_piece_type(piece: Piece) -> Option<PieceType> {
     piece.map(|(t, _)| t)
 }
 
+pub fn get_piece_from_char(ch: char) -> Piece {
+    match ch {
+         'K' => Some((PieceType::King, Side::White)),
+         'Q' => Some((PieceType::Queen, Side::White)),
+         'R' => Some((PieceType::Rook, Side::White)),
+         'B' => Some((PieceType::Bishop, Side::White)),
+         'N' => Some((PieceType::Knight, Side::White)),
+         'P' => Some((PieceType::Pawn, Side::White)),
+         'k' => Some((PieceType::King, Side::Black)),
+         'q' => Some((PieceType::Queen, Side::Black)),
+         'r' => Some((PieceType::Rook, Side::Black)),
+         'b' => Some((PieceType::Bishop, Side::Black)),
+         'n' => Some((PieceType::Knight, Side::Black)),
+         'p' => Some((PieceType::Pawn, Side::Black)),
+          _  => None,
+    }
+}
+
 // Represents a square on the board
 //
 // File counts from the left, starts at 0
@@ -63,7 +81,7 @@ pub struct Direction {
     rank: isize,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Board {
     // An array of squares for the board.
     // In a typical chess game, this would be a vector with length 64.
@@ -158,6 +176,17 @@ impl Board {
             en_passant_target: None,
             current_move: Side::White,
         }
+    }
+
+    pub fn from_art(art: &str) -> Result<Self, &'static str> {
+        let pieces = art.lines()
+            .map(|line| line.chars().map(get_piece_from_char)).rev();
+
+        let mut widths = pieces.clone().map(|rank| rank.count());
+        let first_width = widths.next().ok_or("Can't create board with no height")?;
+        widths.all(|w| w == first_width);
+
+        Ok(Board::with_pieces(pieces.flatten().collect(), first_width))
     }
 
     pub fn with_pieces(pieces: Vec<Piece>, width: usize) -> Self {
@@ -455,6 +484,22 @@ mod test {
             }
         }
     }
+
+    #[test]
+    fn from_art_works_as_expected() {
+        let default_board =
+            "rnbqkbnr\n\
+             pppppppp\n\
+             ........\n\
+             ........\n\
+             ........\n\
+             ........\n\
+             PPPPPPPP\n\
+             RNBQKBNR";
+
+        assert_eq!(Board::from_art(default_board).unwrap(), Board::default());
+    }
+
 
     // Returns a board with the setup
     // ........
