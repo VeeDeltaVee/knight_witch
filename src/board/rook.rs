@@ -19,9 +19,11 @@ impl RookMovement for Board {
 
         let moves = rook_positions
             .into_iter()
+            .inspect(|pos| println!("Checking rook at position {:?}", pos))
             .map(|pos| {
                 directions
                     .clone()
+                    .inspect(move |dir| println!("Checking direction {:?} for rook at position {:?}", dir, pos))
                     .map(move |dir| (dir, self.check_ray_for_pieces(pos, dir, true)))
                     .map(move |(dir, extent)| self.get_all_squares_between(pos, extent, dir))
                     .flatten()

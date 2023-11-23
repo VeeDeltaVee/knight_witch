@@ -7,6 +7,7 @@ use crate::board::pawn::PawnMovement;
 use std::fmt;
 
 use self::knight::KnightMovement;
+use self::rook::RookMovement;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PieceType {
@@ -303,10 +304,6 @@ impl Board {
 
     // TODO: Rest of move impls
     fn generate_bishop_moves(&self) -> Vec<Board> {
-        vec![]
-    }
-
-    fn generate_rook_moves(&self) -> Vec<Board> {
         vec![]
     }
 
