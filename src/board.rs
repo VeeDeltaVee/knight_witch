@@ -1,6 +1,7 @@
 pub mod knight;
 pub mod pawn;
 pub mod rook;
+mod straight_moving_piece;
 mod test_utils;
 
 use crate::board::pawn::PawnMovement;

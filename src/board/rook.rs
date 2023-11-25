@@ -1,8 +1,8 @@
 use crate::board::Board;
 
-use super::{Direction, PieceType};
+use super::{Direction, PieceType, straight_moving_piece::StraightMovingPieceMovement};
 
-pub trait RookMovement {
+pub trait RookMovement: StraightMovingPieceMovement {
     fn generate_rook_moves(&self) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
@@ -10,36 +10,12 @@ pub trait RookMovement {
 
 impl RookMovement for Board {
     fn generate_rook_moves(&self) -> Result<Vec<Board>, &'static str> {
-        let rook_positions = self
-            .get_positions_of_pieces_with_given_side_and_type(PieceType::Rook, self.current_move)?;
-
-        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        let directions: Vec<Direction> = [(0, 1), (1, 0), (0, -1), (-1, 0)]
             .iter()
-            .map(|(x, y)| Direction { rank: *y, file: *x });
-
-        let moves = rook_positions
-            .into_iter()
-            .inspect(|pos| println!("Checking rook at position {:?}", pos))
-            .map(|pos| {
-                directions
-                    .clone()
-                    .inspect(move |dir| println!("Checking direction {:?} for rook at position {:?}", dir, pos))
-                    .map(move |dir| (dir, self.check_ray_for_pieces(pos, dir, true)))
-                    .map(move |(dir, extent)| self.get_all_squares_between(pos, extent, dir))
-                    .flatten()
-                    .flatten()
-                    .map(move |new| (pos, new))
-            })
-            .flatten()
-            .inspect(|(old, new)| println!("Generated move from {:?} to new {:?}", old, new))
-            .filter_map(|(old, new)| {
-                let mut new_board = self.clone();
-                new_board.make_move(old, new).ok()?;
-                Some(new_board)
-            })
+            .map(|(x, y)| Direction { rank: *y, file: *x })
             .collect();
 
-        Ok(moves)
+        self.generate_straight_moves(&directions, PieceType::Rook)
     }
 }
 
