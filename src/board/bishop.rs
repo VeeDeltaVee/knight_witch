@@ -29,7 +29,7 @@ mod test {
     fn moves_diagonally() {
         let board = get_board_for_simple_straight_moves(PieceType::Bishop);
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_moves = vec![
             Square { rank: 1, file: 3 },

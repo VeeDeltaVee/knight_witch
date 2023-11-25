@@ -9,6 +9,7 @@ mod test_utils;
 
 use crate::board::pawn::PawnMovement;
 use std::fmt;
+use std::ops::Add;
 
 use self::knight::KnightMovement;
 use self::rook::RookMovement;
@@ -307,7 +308,22 @@ impl Board {
             (true, false) => {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
-                self.en_passant_target = None;
+
+                let direction = self.get_direction_of_move(new_pos, old_pos);
+
+                if old_piece.is_some_and(|(t, _)| t == PieceType::Pawn) &&
+                    direction.rank.abs() == 2 &&
+                    old_pos.file == new_pos.file
+                {
+                    let en_passent_target_dir = Direction {
+                        rank: direction.rank / 2,
+                        file: 0
+                    };
+
+                    self.en_passant_target = Some(self.add_direction_to_position(old_pos, en_passent_target_dir)?);
+                } else {
+                    self.en_passant_target = None;
+                }
 
                 if checked && self.check_king_threat()? {
                     Err("Can't make move, there's King in check")
@@ -410,6 +426,13 @@ impl Board {
                 rank: new_rank as usize,
                 file: new_file as usize,
             })
+        }
+    }
+
+    fn get_direction_of_move(&self, old: Square, new: Square) -> Direction {
+        Direction {
+            rank: new.rank as isize - old.rank as isize,
+            file: new.file as isize - old.file as isize,
         }
     }
 }

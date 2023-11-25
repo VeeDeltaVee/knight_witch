@@ -32,7 +32,7 @@ mod test {
     fn moves_both_orthogonally_and_diagonally() {
         let board = get_board_for_simple_straight_moves(PieceType::Queen);
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_moves = vec![
             Square { rank: 2, file: 3 },

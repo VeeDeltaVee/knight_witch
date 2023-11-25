@@ -346,4 +346,21 @@ mod test {
             None
         )));
     }
+
+    #[test]
+    fn generates_en_passant_target() {
+        let mut board = Board::from_art(
+            "....\n\
+             pppp\n\
+             ....\n\
+             ..P.\n\
+             ....\n\
+             ....\n"
+        ).unwrap();
+
+        // Push pawn to create en_passant_target
+        board.make_move(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}, true);
+
+        assert_eq!(board.en_passant_target, Some(Square { file: 1, rank: 3 }));
+    }
 }
