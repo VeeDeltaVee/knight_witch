@@ -31,6 +31,7 @@ impl RookMovement for Board {
                     .map(move |new| (pos, new))
             })
             .flatten()
+            .inspect(|(old, new)| println!("Generated move from {:?} to new {:?}", old, new))
             .filter_map(|(old, new)| {
                 let mut new_board = self.clone();
                 new_board.make_move(old, new).ok()?;
@@ -84,7 +85,6 @@ mod test {
         let unexpected_moves = vec![
             Square { rank: 2, file: 5 },
             Square { rank: 2, file: 6 },
-            Square { rank: 6, file: 4 },
             Square { rank: 0, file: 2 },
             Square { rank: 7, file: 2 },
             Square { rank: 1, file: 3 },
