@@ -3,6 +3,7 @@ pub mod pawn;
 pub mod rook;
 pub mod bishop;
 pub mod queen;
+pub mod king;
 mod straight_moving_piece;
 mod test_utils;
 
@@ -13,6 +14,7 @@ use self::knight::KnightMovement;
 use self::rook::RookMovement;
 use self::bishop::BishopMovement;
 use self::queen::QueenMovement;
+use self::king::KingMovement;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PieceType {
@@ -213,7 +215,7 @@ impl Board {
         moves.append(&mut self.generate_bishop_moves()?);
         moves.append(&mut self.generate_rook_moves()?);
         moves.append(&mut self.generate_queen_moves()?);
-        moves.append(&mut self.generate_king_moves());
+        moves.append(&mut self.generate_king_moves()?);
 
         Ok(moves)
     }
@@ -305,10 +307,6 @@ impl Board {
                 file: file,
             })
         }
-    }
-
-    fn generate_king_moves(&self) -> Vec<Board> {
-        vec![]
     }
 
     fn is_valid_square(&self, square: Square) -> bool {
@@ -503,43 +501,5 @@ mod test {
              RNBQKBNR";
 
         assert_eq!(Board::from_art(default_board).unwrap(), Board::default());
-    }
-
-    mod king_moves {
-        use super::*;
-
-        fn get_board_for_simple_king_moves() -> Board {
-            let mut pieces = vec![None; 9];
-            pieces[4] = Some((PieceType::King, Side::White));
-
-            Board::with_pieces(pieces, 3)
-        }
-
-        #[test]
-        fn moves_one_step_nearby() {
-            let board = get_board_for_simple_king_moves();
-
-            let moved_boards = board.generate_moves().unwrap();
-
-            // every place other than the centre should have a king move
-            for rank in 0..2 {
-                for file in 0..2 {
-                    if (rank, file) != (1, 1) {
-                        assert!(moved_boards.iter().any(|x| matches!(
-                            x.get_piece_at_position(Square {
-                                rank: rank,
-                                file: file
-                            })
-                            .unwrap(),
-                            Some((PieceType::King, _))
-                        ) && matches!(
-                            x.get_piece_at_position(Square { rank: 1, file: 1 })
-                                .unwrap(),
-                            None
-                        )));
-                    }
-                }
-            }
-        }
     }
 }

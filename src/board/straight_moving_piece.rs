@@ -15,7 +15,6 @@ impl StraightMovingPieceMovement for Board {
 
         let moves = positions
             .into_iter()
-            .inspect(|pos| println!("Checking rook at position {:?}", pos))
             .map(|pos| {
                 directions
                     .iter()
