@@ -9,7 +9,6 @@ mod test_utils;
 
 use crate::board::pawn::PawnMovement;
 use std::fmt;
-use std::ops::Add;
 
 use self::knight::KnightMovement;
 use self::rook::RookMovement;
@@ -280,9 +279,9 @@ impl Board {
 
         let is_king_in_threat = other_sides_potential_moves
             .iter()
-            .all(|b| {
-                let new_num_kings = b.get_positions_of_pieces_with_given_side_and_type(PieceType::King, self.current_move).map(|ks| ks.len()).unwrap_or(0);
-                num_kings == new_num_kings
+            .map(|b| b.get_positions_of_pieces_with_given_side_and_type(PieceType::King, self.current_move).map(|ks| ks.len()).unwrap_or(0))
+            .any(|n| {
+                num_kings != n
             });
 
         Ok(is_king_in_threat)
@@ -309,7 +308,7 @@ impl Board {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
 
-                let direction = self.get_direction_of_move(new_pos, old_pos);
+                let direction = self.get_direction_of_move(old_pos, new_pos);
 
                 if old_piece.is_some_and(|(t, _)| t == PieceType::Pawn) &&
                     direction.rank.abs() == 2 &&
@@ -440,7 +439,6 @@ impl Board {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::board::test_utils::check_for_moves;
 
     mod default {
         use super::*;

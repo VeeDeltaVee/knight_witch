@@ -173,6 +173,13 @@ mod test {
     use super::*;
     use crate::board::test_utils::check_for_moves;
 
+    // Returns a board with the setup
+    // .....
+    // .....
+    // B.ko.
+    // .P.pP
+    // .....
+    // Where o is the en passant target
     fn get_test_board_for_pawn_captures() -> Board {
         let mut board = Board {
             squares: vec![None; 5 * 5],
@@ -291,13 +298,6 @@ mod test {
         );
     }
 
-    // Returns a board with the setup
-    // .....
-    // .....
-    // B.ko.
-    // .P.pP
-    // .....
-    // Where o is the en passant target
 
     #[test]
     fn captures_opponents_pieces() {
@@ -358,8 +358,10 @@ mod test {
              ....\n"
         ).unwrap();
 
+        board.current_move = Side::Black;
+
         // Push pawn to create en_passant_target
-        board.make_move(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}, true);
+        board.make_move(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}, true).unwrap();
 
         assert_eq!(board.en_passant_target, Some(Square { file: 1, rank: 3 }));
     }
