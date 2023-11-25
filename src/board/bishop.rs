@@ -15,7 +15,7 @@ impl BishopMovement for Board {
             .map(|(x, y)| Direction { rank: *y, file: *x })
             .collect();
 
-        self.generate_straight_moves(&directions, PieceType::Rook)
+        self.generate_straight_moves(&directions, PieceType::Bishop)
     }
 }
 

@@ -19,8 +19,7 @@ impl StraightMovingPieceMovement for Board {
                 directions
                     .iter()
                     .map(move |dir| (dir, self.check_ray_for_pieces(pos, *dir, true)))
-                    .map(move |(dir, extent)| self.get_all_squares_between(pos, extent, *dir))
-                    .flatten()
+                    .filter_map(move |(dir, extent)| self.get_all_squares_between(pos, extent, *dir).ok())
                     .flatten()
                     .map(move |new| (pos, new))
             })
