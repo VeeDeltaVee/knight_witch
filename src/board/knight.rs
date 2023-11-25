@@ -3,13 +3,13 @@ use crate::board::Board;
 use super::{Direction, PieceType, Side};
 
 pub trait KnightMovement {
-    fn generate_knight_moves(&self) -> Result<Vec<Self>, &'static str>
+    fn generate_knight_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl KnightMovement for Board {
-    fn generate_knight_moves(&self) -> Result<Vec<Board>, &'static str> {
+    fn generate_knight_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
         let jumps = vec![
             (-1, 2),
             (1, 2),
@@ -43,7 +43,7 @@ impl KnightMovement for Board {
                     },
                 )
                 // Should be able to move there without error
-                .filter_map(|new_pos| self.new_board_with_moved_piece(old_pos, new_pos).ok());
+                .filter_map(|new_pos| self.new_board_with_moved_piece(old_pos, new_pos, checked).ok());
 
             possible_boards.extend(new_boards);
         }
@@ -126,7 +126,7 @@ mod test {
     fn moves_like_a_knight() {
         let board = get_board_for_simple_knight_moves();
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_moves = vec![
             Square { rank: 5, file: 2 },

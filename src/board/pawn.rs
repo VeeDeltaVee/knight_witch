@@ -3,13 +3,13 @@ use crate::board::Board;
 use super::{Direction, PieceType, Side, Square};
 
 pub trait PawnMovement {
-    fn generate_pawn_moves(&self) -> Result<Vec<Self>, &'static str>
+    fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl PawnMovement for Board {
-    fn generate_pawn_moves(&self) -> Result<Vec<Board>, &'static str> {
+    fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
         let mut possible_moves = vec![];
         let pawn_positions =
             self.get_positions_of_pieces_with_given_side_and_type(PieceType::Pawn, Side::White)?;
@@ -43,7 +43,7 @@ impl PawnMovement for Board {
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos).ok()
+                self.new_board_with_moved_piece(*old_pos, new_pos, checked).ok()
             });
         possible_moves.extend(single_square_pawn_move_boards);
 
@@ -84,7 +84,7 @@ impl PawnMovement for Board {
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos)
+                self.new_board_with_moved_piece(*old_pos, new_pos, checked)
                     .ok()
                     // Should set the en_passant_target
                     .and_then(|mut board| {
@@ -135,7 +135,7 @@ impl PawnMovement for Board {
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos).ok()
+                self.new_board_with_moved_piece(*old_pos, new_pos, checked).ok()
             });
         possible_moves.extend(pawn_capture_boards);
 
@@ -146,7 +146,7 @@ impl PawnMovement for Board {
             .filter(|(_, new_pos)| Some(*new_pos) == self.en_passant_target)
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos)
+                self.new_board_with_moved_piece(*old_pos, new_pos, checked)
                     .ok()
                     .and_then(|mut board| {
                         board
@@ -250,7 +250,7 @@ mod test {
     #[test]
     fn one_square_forward() {
         let board = get_test_board_for_simple_pawn_moves();
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_single_square_pushes = vec![
             Square { rank: 2, file: 0 },
@@ -272,7 +272,7 @@ mod test {
     #[test]
     fn two_squares_forward() {
         let board = get_test_board_for_simple_pawn_moves();
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_double_square_pushes =
             vec![Square { rank: 3, file: 0 }, Square { rank: 3, file: 5 }];
@@ -303,7 +303,7 @@ mod test {
     fn captures_opponents_pieces() {
         let board = get_test_board_for_pawn_captures();
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         // At least one of the moves suggested should have the pawn
         // take a piece
@@ -318,7 +318,7 @@ mod test {
     fn doesnt_capture_friendly_pieces() {
         let board = get_test_board_for_pawn_captures();
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         // None of the moves should have a pawn taking the friendly piece
         assert!(moved_boards.into_iter().all(|x| !matches!(
@@ -332,7 +332,7 @@ mod test {
     fn captures_en_passant() {
         let board = get_test_board_for_pawn_captures();
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         // At least one of the moves suggested should have the pawn
         // take the pawn en passant

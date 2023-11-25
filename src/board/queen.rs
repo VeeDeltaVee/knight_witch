@@ -3,19 +3,19 @@ use crate::board::Board;
 use super::{Direction, PieceType, straight_moving_piece::StraightMovingPieceMovement};
 
 pub trait QueenMovement: StraightMovingPieceMovement {
-    fn generate_queen_moves(&self) -> Result<Vec<Self>, &'static str>
+    fn generate_queen_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl QueenMovement for Board {
-    fn generate_queen_moves(&self) -> Result<Vec<Board>, &'static str> {
+    fn generate_queen_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
         let directions: Vec<Direction> = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
             .iter()
             .map(|(x, y)| Direction { rank: *y, file: *x })
             .collect();
 
-        self.generate_straight_moves(&directions, PieceType::Queen)
+        self.generate_straight_moves(&directions, PieceType::Queen, checked)
     }
 }
 

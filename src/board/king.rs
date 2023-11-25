@@ -3,13 +3,13 @@ use crate::board::Board;
 use super::Direction;
 
 pub trait KingMovement {
-    fn generate_king_moves(&self) -> Result<Vec<Self>, &'static str>
+    fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl KingMovement for Board {
-    fn generate_king_moves(&self) -> Result<Vec<Self>, &'static str> {
+    fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str> {
         let offsets = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
             .iter()
             .map(|(x, y)| Direction { rank: *y, file: *x });
@@ -27,7 +27,7 @@ impl KingMovement for Board {
             .flatten()
             .filter_map(|(old, new)| {
                 let mut new_board = self.clone();
-                new_board.make_move(old, new).ok()?;
+                new_board.make_move(old, new, checked).ok()?;
                 Some(new_board)
             })
             .collect();
@@ -56,7 +56,7 @@ mod test {
     fn moves_one_step_nearby() {
         let board = get_board_for_simple_king_moves();
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         // every place other than the centre should have a king move
         for rank in 0..2 {

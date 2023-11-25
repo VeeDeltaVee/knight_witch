@@ -209,13 +209,13 @@ impl Board {
 
     // Generates a list of future board states that are possible from the
     // current board state.
-    pub fn generate_moves(&self) -> Result<Vec<Board>, &'static str> {
-        let mut moves = self.generate_pawn_moves()?;
-        moves.append(&mut self.generate_knight_moves()?);
-        moves.append(&mut self.generate_bishop_moves()?);
-        moves.append(&mut self.generate_rook_moves()?);
-        moves.append(&mut self.generate_queen_moves()?);
-        moves.append(&mut self.generate_king_moves()?);
+    pub fn generate_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
+        let mut moves = self.generate_pawn_moves(checked)?;
+        moves.append(&mut self.generate_knight_moves(checked)?);
+        moves.append(&mut self.generate_bishop_moves(checked)?);
+        moves.append(&mut self.generate_rook_moves(checked)?);
+        moves.append(&mut self.generate_queen_moves(checked)?);
+        moves.append(&mut self.generate_king_moves(checked)?);
 
         Ok(moves)
     }
@@ -261,10 +261,30 @@ impl Board {
         &self,
         old_pos: Square,
         new_pos: Square,
+        checked: bool,
     ) -> Result<Board, &'static str> {
         let mut new_board = self.clone();
-        new_board.make_move(old_pos, new_pos)?;
+        new_board.make_move(old_pos, new_pos, checked)?;
         Ok(new_board)
+    }
+
+    pub fn check_king_threat(&self) -> Result<bool, &'static str> {
+        let kings = self.get_positions_of_pieces_with_given_side_and_type(PieceType::King, self.current_move)?;
+        let num_kings = kings.len();
+
+        let mut skipped_move_board = self.clone();
+        skipped_move_board.current_move = skipped_move_board.current_move.flip();
+
+        let other_sides_potential_moves = skipped_move_board.generate_moves(false)?;
+
+        let is_king_in_threat = other_sides_potential_moves
+            .iter()
+            .all(|b| {
+                let new_num_kings = b.get_positions_of_pieces_with_given_side_and_type(PieceType::King, self.current_move).map(|ks| ks.len()).unwrap_or(0);
+                num_kings == new_num_kings
+            });
+
+        Ok(is_king_in_threat)
     }
 
     // Moves the piece at given old position to given new position in place
@@ -274,7 +294,7 @@ impl Board {
     // to be moved isn't CurrentlyMoving
     //
     // TODO: Needs to fail when currently-moving king is in check
-    pub fn make_move(&mut self, old_pos: Square, new_pos: Square) -> Result<(), &'static str> {
+    pub fn make_move(&mut self, old_pos: Square, new_pos: Square, checked: bool) -> Result<(), &'static str> {
         let old_piece = self.get_piece_at_position(old_pos)?;
         let new_piece = self.get_piece_at_position(new_pos)?;
 
@@ -288,7 +308,13 @@ impl Board {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
                 self.en_passant_target = None;
-                Ok(())
+
+                if checked && self.check_king_threat()? {
+                    Err("Can't make move, there's King in check")
+                } else {
+                    self.current_move = self.current_move.flip();
+                    Ok(())
+                }
             }
             (false, _) => Err("Can't make move, piece at old_pos isn't CurrentlyMoving"),
             (_, true) => Err("Can't make move, friendly piece exists at new_pos"),

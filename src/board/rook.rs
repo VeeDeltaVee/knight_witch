@@ -3,19 +3,19 @@ use crate::board::Board;
 use super::{Direction, PieceType, straight_moving_piece::StraightMovingPieceMovement};
 
 pub trait RookMovement: StraightMovingPieceMovement {
-    fn generate_rook_moves(&self) -> Result<Vec<Self>, &'static str>
+    fn generate_rook_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl RookMovement for Board {
-    fn generate_rook_moves(&self) -> Result<Vec<Board>, &'static str> {
+    fn generate_rook_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
         let directions: Vec<Direction> = [(0, 1), (1, 0), (0, -1), (-1, 0)]
             .iter()
             .map(|(x, y)| Direction { rank: *y, file: *x })
             .collect();
 
-        self.generate_straight_moves(&directions, PieceType::Rook)
+        self.generate_straight_moves(&directions, PieceType::Rook, checked)
     }
 }
 
@@ -32,7 +32,7 @@ mod test {
     fn moves_orthogonally() {
         let board = get_board_for_simple_straight_moves(PieceType::Rook);
 
-        let moved_boards = board.generate_moves().unwrap();
+        let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_moves = vec![
             Square { rank: 2, file: 3 },
