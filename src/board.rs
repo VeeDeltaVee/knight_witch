@@ -4,6 +4,7 @@ pub mod rook;
 pub mod bishop;
 pub mod queen;
 pub mod king;
+pub mod castling;
 mod straight_moving_piece;
 mod test_utils;
 
