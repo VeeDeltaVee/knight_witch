@@ -103,6 +103,14 @@ pub struct Board {
 
     // Which side has to make a move next
     current_move: Side,
+
+    /// Store 4 booleans, representing which side can castle where,
+    /// if at all. Shouldn't be accessed directly
+    /// The state is stored in top to bottom, left
+    /// to right:
+    /// black queenside, black kingside, white queenside,
+    /// white kingside
+    castling_availability: [bool; 4],
 }
 
 impl fmt::Display for Board {
@@ -184,9 +192,18 @@ impl Board {
             width: 8,
             en_passant_target: None,
             current_move: Side::White,
+            castling_availability: [true, true, true, true],
         }
     }
 
+    /// Generates a board state from ascii art of the board
+    /// Pieces are denoted like FEN notation, just in a grid
+    /// instead of compressed. Makes for easier reading of tests etc.
+    ///
+    /// Note: This doesn't add any castling availability
+    /// Since in the arbitrary case there's no way to know 
+    /// if castling is available, we don't try, and say it's not
+    /// available at all
     pub fn from_art(art: &str) -> Result<Self, &'static str> {
         let pieces = art.lines()
             .map(|line| line.chars().map(get_piece_from_char)).rev();
@@ -204,6 +221,10 @@ impl Board {
             width: width,
             en_passant_target: None,
             current_move: Side::White,
+
+            // There's no real way to get the castling availability 
+            // while constructing a board from pieces, so we set all to false
+            castling_availability: [false, false, false, false],
         }
     }
 
@@ -537,7 +558,7 @@ mod test {
 
     #[test]
     fn from_art_works_as_expected() {
-        let default_board =
+        let art =
             "rnbqkbnr\n\
              pppppppp\n\
              ........\n\
@@ -547,6 +568,14 @@ mod test {
              PPPPPPPP\n\
              RNBQKBNR";
 
-        assert_eq!(Board::from_art(default_board).unwrap(), Board::default());
+        let mut board = Board::from_art(art).unwrap();
+
+        // The default board constructed by Board::default()
+        // has castling as true, but art returns it as false
+        // So just to make testing equality easier, set
+        // it to true here too
+        board.castling_availability = [true, true, true, true];
+
+        assert_eq!(board, Board::default());
     }
 }

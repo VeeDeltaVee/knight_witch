@@ -186,6 +186,7 @@ mod test {
             width: 5,
             en_passant_target: Some(Square { rank: 2, file: 3 }),
             current_move: Side::White,
+            castling_availability: [false, false, false, false],
         };
 
         board
@@ -251,6 +252,7 @@ mod test {
             width: 7,
             en_passant_target: None,
             current_move: Side::White,
+            castling_availability: [false, false, false, false],
         }
     }
 
