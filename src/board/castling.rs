@@ -66,10 +66,10 @@ impl CastlingMovement for Board {
         self.ensure_king_position();
 
         if self.check_king_threat()? {
-            return OK(vec![])
+            return Ok(vec![])
         }
 
-        let moves = vec![];
+        let mut moves = vec![];
 
         let directions = [CastlingDirection::Queenside, CastlingDirection::Kingside];
         for dir in directions {
