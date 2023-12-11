@@ -1,7 +1,6 @@
 [package]
 name = "knight_witch"
 version = "0.1.0"
-authors = ["VeeDeltaVee <45564258+VeeDeltaVee@users.noreply.github.com>"]
 edition = "2018"
 license = "Apache-2.0"
 
