@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::Direction;
+use super::Offset;
 
 pub trait KingMovement {
     fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -12,7 +12,7 @@ impl KingMovement for Board {
     fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str> {
         let offsets = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
             .iter()
-            .map(|(x, y)| Direction { rank: *y, file: *x });
+            .map(|(x, y)| Offset { rank: *y, file: *x });
 
         let positions = self.get_positions_of_pieces_with_given_side_and_type(super::PieceType::King, self.current_move)?;
 
@@ -21,7 +21,7 @@ impl KingMovement for Board {
             .map(|pos| {
                 offsets
                     .clone()
-                    .filter_map(move |off| self.add_direction_to_position(pos, off).ok())
+                    .filter_map(move |off| self.add_offset_to_position(pos, off).ok())
                     .map(move |new| (pos, new))
             })
             .flatten()

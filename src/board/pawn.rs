@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceType, Side, Square};
+use super::{Offset, PieceType, Side, Square};
 
 pub trait PawnMovement {
     fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -66,7 +66,7 @@ impl PawnMovement for Board {
                 let ray_rank = self
                     .check_ray_for_pieces(
                         **old_pos,
-                        Direction {
+                        Offset {
                             rank: single_move_offset,
                             file: 0,
                         },

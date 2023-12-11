@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceType, straight_moving_piece::StraightMovingPieceMovement};
+use super::{Offset, PieceType, straight_moving_piece::StraightMovingPieceMovement};
 
 pub trait BishopMovement: StraightMovingPieceMovement {
     fn generate_bishop_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -10,12 +10,12 @@ pub trait BishopMovement: StraightMovingPieceMovement {
 
 impl BishopMovement for Board {
     fn generate_bishop_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
-        let directions: Vec<Direction> = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
+        let offsets: Vec<Offset> = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
             .iter()
-            .map(|(x, y)| Direction { rank: *y, file: *x })
+            .map(|(x, y)| Offset { rank: *y, file: *x })
             .collect();
 
-        self.generate_straight_moves(&directions, PieceType::Bishop, checked)
+        self.generate_straight_moves(&offsets, PieceType::Bishop, checked)
     }
 }
 

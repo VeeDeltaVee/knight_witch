@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceType, Side};
+use super::{Offset, PieceType, Side};
 
 pub trait KnightMovement {
     fn generate_knight_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -28,12 +28,12 @@ impl KnightMovement for Board {
         for old_pos in knight_positions {
             let new_boards = jumps
                 .iter()
-                .map(|(file, rank)| Direction {
+                .map(|(file, rank)| Offset {
                     file: *file,
                     rank: *rank,
                 })
                 // Get target square and check for out-of-bounds moves
-                .filter_map(|dir| self.add_direction_to_position(old_pos, dir).ok())
+                .filter_map(|dir| self.add_offset_to_position(old_pos, dir).ok())
                 // Check target square: can't take own pieces
                 .filter(
                     |new_pos| match self.get_piece_at_position(*new_pos).unwrap() {

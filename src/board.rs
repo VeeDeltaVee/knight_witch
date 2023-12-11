@@ -80,13 +80,13 @@ pub struct Square {
     rank: usize,
 }
 
-// Represents a Direction on the board
+// Represents a Offset on the board
 // Represents an offset from a position, used for raycasting
 //
 // File counts from the left
 // Rank counts from the bottom
 #[derive(Copy, Clone, Debug)]
-pub struct Direction {
+pub struct Offset {
     file: isize,
     rank: isize,
 }
@@ -330,18 +330,18 @@ impl Board {
                 self.set_piece_at_position(old_piece, new_pos)?;
                 self.set_piece_at_position(None, old_pos)?;
 
-                let direction = self.get_direction_of_move(old_pos, new_pos);
+                let offset = self.get_offset_of_move(old_pos, new_pos);
 
                 if old_piece.is_some_and(|(t, _)| t == PieceType::Pawn) &&
-                    direction.rank.abs() == 2 &&
+                    offset.rank.abs() == 2 &&
                     old_pos.file == new_pos.file
                 {
-                    let en_passent_target_dir = Direction {
-                        rank: direction.rank / 2,
+                    let en_passent_target_dir = Offset {
+                        rank: offset.rank / 2,
                         file: 0
                     };
 
-                    self.en_passant_target = Some(self.add_direction_to_position(old_pos, en_passent_target_dir)?);
+                    self.en_passant_target = Some(self.add_offset_to_position(old_pos, en_passent_target_dir)?);
                 } else {
                     self.en_passant_target = None;
                 }
@@ -389,14 +389,14 @@ impl Board {
             .collect()
     }
 
-    // Checks and returns the first piece in the given direction from given position
+    // Checks and returns the first piece in the given offset from given position
     //
-    // If there are no pieces in the given direction, returns the last square that could be reached
-    // If there is a piece in the given direction, returns position of that piece
-    fn check_ray_for_pieces(&self, pos: Square, dir: Direction, can_take: bool) -> Square {
+    // If there are no pieces in the given offset, returns the last square that could be reached
+    // If there is a piece in the given offset, returns position of that piece
+    fn check_ray_for_pieces(&self, pos: Square, offset: Offset, can_take: bool) -> Square {
         let mut final_pos = pos;
         loop {
-            match self.add_direction_to_position(final_pos, dir) {
+            match self.add_offset_to_position(final_pos, offset) {
                 Err(_) => break,
                 Ok(new_pos) => match self.get_piece_at_position(new_pos).unwrap() {
                     Some((_, Side::White)) => break,
@@ -414,34 +414,34 @@ impl Board {
         final_pos
     }
 
-    fn get_all_squares_between(&self, start: Square, dest: Square, direction: Direction) -> Result<Vec<Square>, &'static str> {
+    fn get_all_squares_between(&self, start: Square, dest: Square, offset: Offset) -> Result<Vec<Square>, &'static str> {
         let mut squares = vec![];
         let mut current = start;
         while current != dest {
-            current = self.add_direction_to_position(current, direction)?;
+            current = self.add_offset_to_position(current, offset)?;
             squares.push(current);
         }
 
         Ok(squares)
     }
 
-    fn add_direction_to_position(
+    fn add_offset_to_position(
         &self,
         pos: Square,
-        dir: Direction,
+        offset: Offset,
     ) -> Result<Square, &'static str> {
-        let new_rank = pos.rank as isize + dir.rank;
-        let new_file = pos.file as isize + dir.file;
+        let new_rank = pos.rank as isize + offset.rank;
+        let new_file = pos.file as isize + offset.file;
 
         if new_rank < 0 {
-            Err("Can't add direction to position, new rank is less than 0")
+            Err("Can't add offset to position, new rank is less than 0")
         } else if new_file < 0 {
-            Err("Can't add direction to position, new file is less than 0")
+            Err("Can't add offset to position, new file is less than 0")
         } else if !self.is_valid_square(Square {
             rank: new_rank as usize,
             file: new_file as usize,
         }) {
-            Err("Can't add direction to position, position is out of bounds")
+            Err("Can't add offset to position, position is out of bounds")
         } else {
             Ok(Square {
                 rank: new_rank as usize,
@@ -450,8 +450,8 @@ impl Board {
         }
     }
 
-    fn get_direction_of_move(&self, old: Square, new: Square) -> Direction {
-        Direction {
+    fn get_offset_of_move(&self, old: Square, new: Square) -> Offset {
+        Offset {
             rank: new.rank as isize - old.rank as isize,
             file: new.file as isize - old.file as isize,
         }

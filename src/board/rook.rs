@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Direction, PieceType, straight_moving_piece::StraightMovingPieceMovement};
+use super::{Offset, PieceType, straight_moving_piece::StraightMovingPieceMovement};
 
 pub trait RookMovement: StraightMovingPieceMovement {
     fn generate_rook_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -10,12 +10,12 @@ pub trait RookMovement: StraightMovingPieceMovement {
 
 impl RookMovement for Board {
     fn generate_rook_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
-        let directions: Vec<Direction> = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        let offsets: Vec<Offset> = [(0, 1), (1, 0), (0, -1), (-1, 0)]
             .iter()
-            .map(|(x, y)| Direction { rank: *y, file: *x })
+            .map(|(x, y)| Offset { rank: *y, file: *x })
             .collect();
 
-        self.generate_straight_moves(&directions, PieceType::Rook, checked)
+        self.generate_straight_moves(&offsets, PieceType::Rook, checked)
     }
 }
 
