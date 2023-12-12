@@ -437,6 +437,7 @@ impl Board {
         Ok(squares)
     }
 
+    // add an offset to a square and validate that it is on the board
     fn add_offset_to_position(
         &self,
         pos: Square,
@@ -461,6 +462,7 @@ impl Board {
         }
     }
 
+    // Calculate an offset between two squares on the board
     fn get_offset_of_move(&self, old: Square, new: Square) -> Offset {
         Offset {
             rank: new.rank as isize - old.rank as isize,
