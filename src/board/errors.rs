@@ -17,9 +17,9 @@ pub enum InvalidOffsetError {
     InvalidSquare(InvalidSquareError)
 }
 
-impl Into<&'static str> for InvalidOffsetError  {
-    fn into(self) -> &'static str {
-        match self {
+impl From<InvalidOffsetError> for &'static str  {
+    fn from(item: InvalidOffsetError) -> &'static str {
+        match item {
             InvalidOffsetError::LessThanZero(Orientation::File, _) => "Invalid offset, resulting file is less than zero",
             InvalidOffsetError::LessThanZero(_, _) => "Invalid offset, resulting rank is less than zero",
             InvalidOffsetError::InvalidSquare(error) => error.into(),
@@ -33,14 +33,14 @@ pub enum InvalidSquareError {
     OutOfBounds(Orientation, Square),
 }
 
-impl Into<&'static str> for InvalidSquareError {
-    fn into(self) -> &'static str {
+impl From<InvalidSquareError> for &'static str {
+    fn from(_: InvalidSquareError) -> &'static str {
         "Square is out of bounds"
     }
 }
 
-impl Into<InvalidOffsetError> for InvalidSquareError {
-    fn into(self) -> InvalidOffsetError {
-        InvalidOffsetError::InvalidSquare(self)
+impl From<InvalidSquareError> for InvalidOffsetError {
+    fn from(item: InvalidSquareError) -> InvalidOffsetError {
+        InvalidOffsetError::InvalidSquare(item)
     }
 }

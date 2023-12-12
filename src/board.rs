@@ -265,10 +265,10 @@ impl Board {
         piece: Piece,
         square: Square,
     ) -> Result<(), &'static str> {
-        self.validate_square(square).map(|square| {
+        Ok(self.validate_square(square).map(|square| {
             self.squares[square.rank * self.width + square.file] = piece;
             ()
-        }) .map_err(Into::into)
+        })?)
     }
 
     // Moves the piece at given old position to given new position
@@ -316,8 +316,8 @@ impl Board {
     //
     // TODO: Needs to fail when currently-moving king is in check
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square, checked: bool) -> Result<(), &'static str> {
-        let old_piece = self.get_piece_at_position(old_pos).map_err(Into::into)?;
-        let new_piece = self.get_piece_at_position(new_pos).map_err(Into::into)?;
+        let old_piece = self.get_piece_at_position(old_pos)?;
+        let new_piece = self.get_piece_at_position(new_pos)?;
 
         let is_old_piece_currently_moving = get_piece_side(old_piece)
             .ok_or("Can't make move, old_pos doesn't have piece")?
@@ -340,7 +340,7 @@ impl Board {
                         file: 0
                     };
 
-                    self.en_passant_target = Some(self.add_offset_to_position(old_pos, en_passent_target_dir).map_err(Into::into)?);
+                    self.en_passant_target = Some(self.add_offset_to_position(old_pos, en_passent_target_dir)?);
                 } else {
                     self.en_passant_target = None;
                 }
@@ -455,10 +455,10 @@ impl Board {
         } else if new_file < 0 {
             Err(InvalidOffsetError::LessThanZero(Orientation::File, offset))
         } else {
-            self.validate_square(Square {
+            Ok(self.validate_square(Square {
                 rank: new_rank as usize,
                 file: new_file as usize,
-            }).map_err(Into::into)
+            })?)
         }
     }
 
