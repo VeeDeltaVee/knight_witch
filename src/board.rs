@@ -70,6 +70,46 @@ pub fn get_piece_from_char(ch: char) -> Piece {
     }
 }
 
+#[derive(Debug)]
+enum Orientation {
+    Rank,
+    File,
+    Both,
+}
+
+#[derive(Debug)]
+enum InvalidOffsetError {
+    LessThanZero(Orientation, Offset),
+    InvalidSquare(InvalidSquareError)
+}
+
+impl Into<&'static str> for InvalidOffsetError  {
+    fn into(self) -> &'static str {
+        match self {
+            InvalidOffsetError::LessThanZero(Orientation::File, _) => "Invalid offset, resulting file is less than zero",
+            InvalidOffsetError::LessThanZero(_, _) => "Invalid offset, resulting rank is less than zero",
+            InvalidOffsetError::InvalidSquare(error) => error.into(),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum InvalidSquareError {
+    OutOfBounds(Orientation, Square),
+}
+
+impl Into<&'static str> for InvalidSquareError {
+    fn into(self) -> &'static str {
+        "Square is out of bounds"
+    }
+}
+
+impl Into<InvalidOffsetError> for InvalidSquareError {
+    fn into(self) -> InvalidOffsetError {
+        InvalidOffsetError::InvalidSquare(self)
+    }
+}
+
 // Represents a square on the board
 //
 // File counts from the left, starts at 0
@@ -248,12 +288,10 @@ impl Board {
     pub fn get_piece_at_position(
         &self,
         square: Square,
-    ) -> Result<Option<(PieceType, Side)>, &'static str> {
-        if !self.is_valid_square(square) {
-            Err("Position out of bounds")
-        } else {
-            Ok(self.squares[square.rank * self.width + square.file])
-        }
+    ) -> Result<Option<(PieceType, Side)>, InvalidSquareError> {
+        self.validate_square(square).map(|square| {
+            self.squares[square.rank * self.width + square.file]
+        }) 
     }
 
     // Sets the piece at the given position to be the given piece
@@ -264,12 +302,10 @@ impl Board {
         piece: Piece,
         square: Square,
     ) -> Result<(), &'static str> {
-        if !self.is_valid_square(square) {
-            Err("Position out of bounds")
-        } else {
+        self.validate_square(square).map(|square| {
             self.squares[square.rank * self.width + square.file] = piece;
-            Ok(())
-        }
+            ()
+        }) .map_err(Into::into)
     }
 
     // Moves the piece at given old position to given new position
@@ -317,8 +353,8 @@ impl Board {
     //
     // TODO: Needs to fail when currently-moving king is in check
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square, checked: bool) -> Result<(), &'static str> {
-        let old_piece = self.get_piece_at_position(old_pos)?;
-        let new_piece = self.get_piece_at_position(new_pos)?;
+        let old_piece = self.get_piece_at_position(old_pos).map_err(Into::into)?;
+        let new_piece = self.get_piece_at_position(new_pos).map_err(Into::into)?;
 
         let is_old_piece_currently_moving = get_piece_side(old_piece)
             .ok_or("Can't make move, old_pos doesn't have piece")?
@@ -341,7 +377,7 @@ impl Board {
                         file: 0
                     };
 
-                    self.en_passant_target = Some(self.add_offset_to_position(old_pos, en_passent_target_dir)?);
+                    self.en_passant_target = Some(self.add_offset_to_position(old_pos, en_passent_target_dir).map_err(Into::into)?);
                 } else {
                     self.en_passant_target = None;
                 }
@@ -372,8 +408,21 @@ impl Board {
         }
     }
 
-    fn is_valid_square(&self, square: Square) -> bool {
-        square.file < self.width && square.rank * self.width + square.file < self.squares.len()
+    // Checks that the square is a valid square on the board
+    //
+    // If the square is out of bounds in either or both directions an error is returned
+    fn validate_square(&self, square: Square) -> Result<Square, InvalidSquareError> {
+        if square.file >= self.width {
+            if square.rank * self.width + square.file >= self.squares.len(){
+                Err(InvalidSquareError::OutOfBounds(Orientation::Both, square))
+            } else {
+                Err(InvalidSquareError::OutOfBounds(Orientation::File, square))
+            }
+        } else if square.rank * self.width + square.file >= self.squares.len() {
+            Err(InvalidSquareError::OutOfBounds(Orientation::Rank, square))
+        } else {
+            Ok(square)
+        }
     }
 
     fn get_positions_of_pieces_with_given_side_and_type(
@@ -414,7 +463,7 @@ impl Board {
         final_pos
     }
 
-    fn get_all_squares_between(&self, start: Square, dest: Square, offset: Offset) -> Result<Vec<Square>, &'static str> {
+    fn get_all_squares_between(&self, start: Square, dest: Square, offset: Offset) -> Result<Vec<Square>, InvalidOffsetError> {
         let mut squares = vec![];
         let mut current = start;
         while current != dest {
@@ -429,24 +478,23 @@ impl Board {
         &self,
         pos: Square,
         offset: Offset,
-    ) -> Result<Square, &'static str> {
+    ) -> Result<Square, InvalidOffsetError> {
         let new_rank = pos.rank as isize + offset.rank;
         let new_file = pos.file as isize + offset.file;
 
         if new_rank < 0 {
-            Err("Can't add offset to position, new rank is less than 0")
+            if new_file < 0 {
+                Err(InvalidOffsetError::LessThanZero(Orientation::Both, offset))
+            } else {
+                Err(InvalidOffsetError::LessThanZero(Orientation::Rank, offset))
+            }
         } else if new_file < 0 {
-            Err("Can't add offset to position, new file is less than 0")
-        } else if !self.is_valid_square(Square {
-            rank: new_rank as usize,
-            file: new_file as usize,
-        }) {
-            Err("Can't add offset to position, position is out of bounds")
+            Err(InvalidOffsetError::LessThanZero(Orientation::File, offset))
         } else {
-            Ok(Square {
+            self.validate_square(Square {
                 rank: new_rank as usize,
                 file: new_file as usize,
-            })
+            }).map_err(Into::into)
         }
     }
 
