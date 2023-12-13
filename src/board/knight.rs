@@ -36,7 +36,7 @@ impl KnightMovement for Board {
                 .filter_map(|dir| self.add_offset_to_position(old_pos, dir).ok())
                 // Check target square: can't take own pieces
                 .filter(
-                    |new_pos| match self.get_piece_at_position(*new_pos).unwrap() {
+                    |new_pos| match self.get_piece_at_position(*new_pos) {
                         None => true,
                         Some((_, Side::Black)) => true,
                         Some((_, Side::White)) => false,

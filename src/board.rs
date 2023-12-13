@@ -6,6 +6,7 @@ pub mod queen;
 pub mod king;
 pub mod castling;
 pub mod square;
+
 mod straight_moving_piece;
 mod test_utils;
 mod errors;
@@ -18,9 +19,8 @@ use self::rook::RookMovement;
 use self::bishop::BishopMovement;
 use self::queen::QueenMovement;
 use self::king::KingMovement;
-
-use self::square::*;
 use self::errors::*;
+use self::square::{Square, UncheckedSquare};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum PieceType {
@@ -75,6 +75,7 @@ pub fn get_piece_from_char(ch: char) -> Piece {
     }
 }
 
+
 // Represents a Offset on the board
 // Represents an offset from a position, used for raycasting
 //
@@ -116,16 +117,18 @@ impl fmt::Display for Board {
         for rank in (0..self.squares.len() / self.width).rev() {
             write!(f, "\t")?;
             for file in 0..self.width {
-                let square = Square {
+                let square = UncheckedSquare {
                     rank: rank,
                     file: file,
-                };
+                }.validate(self)
+                .expect("We are iterating over the squares in the board, this should always be a valid square, someone fucked up");
+
                 if self.en_passant_target == Some(square) {
                     write!(f, "*")?;
                     continue;
                 }
 
-                let piece = self.get_piece_at_position(square).unwrap();
+                let piece = self.get_piece_at_position(square);
                 let representation = match piece {
                     None => ".",
                     Some((PieceType::Pawn, Side::White)) => "P",
@@ -243,10 +246,8 @@ impl Board {
     pub fn get_piece_at_position(
         &self,
         square: Square,
-    ) -> Result<Option<(PieceType, Side)>, InvalidSquareError> {
-        self.validate_square(square).map(|square| {
-            self.squares[square.rank * self.width + square.file]
-        }) 
+    ) -> Option<(PieceType, Side)> { 
+        self.squares[square.get_rank() * self.width + square.get_file()]
     }
 
     // Sets the piece at the given position to be the given piece
@@ -256,11 +257,8 @@ impl Board {
         &mut self,
         piece: Piece,
         square: Square,
-    ) -> Result<(), &'static str> {
-        Ok(self.validate_square(square).map(|square| {
-            self.squares[square.rank * self.width + square.file] = piece;
-            ()
-        })?)
+    ){
+        self.squares[square.get_rank() * self.width + square.get_file()] = piece;
     }
 
     // Moves the piece at given old position to given new position
@@ -308,8 +306,8 @@ impl Board {
     //
     // TODO: Needs to fail when currently-moving king is in check
     pub fn make_move(&mut self, old_pos: Square, new_pos: Square, checked: bool) -> Result<(), &'static str> {
-        let old_piece = self.get_piece_at_position(old_pos)?;
-        let new_piece = self.get_piece_at_position(new_pos)?;
+        let old_piece = self.get_piece_at_position(old_pos);
+        let new_piece = self.get_piece_at_position(new_pos);
 
         let is_old_piece_currently_moving = get_piece_side(old_piece)
             .ok_or("Can't make move, old_pos doesn't have piece")?
@@ -318,14 +316,14 @@ impl Board {
 
         match (is_old_piece_currently_moving, is_new_piece_ours) {
             (true, false) => {
-                self.set_piece_at_position(old_piece, new_pos)?;
-                self.set_piece_at_position(None, old_pos)?;
+                self.set_piece_at_position(old_piece, new_pos);
+                self.set_piece_at_position(None, old_pos);
 
                 let offset = self.get_offset_of_move(old_pos, new_pos);
 
                 if old_piece.is_some_and(|(t, _)| t == PieceType::Pawn) &&
                     offset.rank.abs() == 2 &&
-                    old_pos.file == new_pos.file
+                    old_pos.get_file() == new_pos.get_file()
                 {
                     let en_passent_target_dir = Offset {
                         rank: offset.rank / 2,
@@ -356,27 +354,10 @@ impl Board {
         } else {
             let rank = index / self.width;
             let file = index - rank * self.width;
-            Ok(Square {
+            Ok(UncheckedSquare {
                 rank: rank,
                 file: file,
-            })
-        }
-    }
-
-    // Checks that the square is a valid square on the board
-    //
-    // If the square is out of bounds in either or both directions an error is returned
-    fn validate_square(&self, square: Square) -> Result<Square, InvalidSquareError> {
-        if square.file >= self.width {
-            if square.rank * self.width + square.file >= self.squares.len(){
-                Err(InvalidSquareError::OutOfBounds(Orientation::Both, square.into()))
-            } else {
-                Err(InvalidSquareError::OutOfBounds(Orientation::File, square.into()))
-            }
-        } else if square.rank * self.width + square.file >= self.squares.len() {
-            Err(InvalidSquareError::OutOfBounds(Orientation::Rank, square.into()))
-        } else {
-            Ok(square)
+            }.validate(self)?)
         }
     }
 
@@ -402,7 +383,7 @@ impl Board {
         loop {
             match self.add_offset_to_position(final_pos, offset) {
                 Err(_) => break,
-                Ok(new_pos) => match self.get_piece_at_position(new_pos).unwrap() {
+                Ok(new_pos) => match self.get_piece_at_position(new_pos) {
                     Some((_, Side::White)) => break,
                     Some((_, Side::Black)) => {
                         if can_take {
@@ -435,8 +416,8 @@ impl Board {
         pos: Square,
         offset: Offset,
     ) -> Result<Square, InvalidOffsetError> {
-        let new_rank = pos.rank as isize + offset.rank;
-        let new_file = pos.file as isize + offset.file;
+        let new_rank = pos.get_rank() as isize + offset.rank;
+        let new_file = pos.get_file() as isize + offset.file;
 
         if new_rank < 0 {
             if new_file < 0 {
@@ -447,18 +428,18 @@ impl Board {
         } else if new_file < 0 {
             Err(InvalidOffsetError::LessThanZero(Orientation::File, offset))
         } else {
-            Ok(self.validate_square(Square {
+            Ok(UncheckedSquare {
                 rank: new_rank as usize,
                 file: new_file as usize,
-            })?)
+            }.validate(self)?)
         }
     }
 
     // Calculate an offset between two squares on the board
     fn get_offset_of_move(&self, old: Square, new: Square) -> Offset {
         Offset {
-            rank: new.rank as isize - old.rank as isize,
-            file: new.file as isize - old.file as isize,
+            rank: new.get_rank() as isize - old.get_rank() as isize,
+            file: new.get_file() as isize - old.get_file() as isize,
         }
     }
 }

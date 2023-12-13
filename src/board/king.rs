@@ -67,10 +67,10 @@ mod test {
                             rank: rank,
                             file: file
                         }.validate(&x).unwrap()),
-                        Ok(Some((PieceType::King, _)))
+                        Some((PieceType::King, _))
                     ) && matches!(
                         x.get_piece_at_position(UncheckedSquare { rank: 1, file: 1 }.validate(&x).unwrap()),
-                        Ok(None)
+                        None
                     )));
                 }
             }

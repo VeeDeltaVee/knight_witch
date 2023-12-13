@@ -39,7 +39,7 @@ impl PawnMovement for Board {
                 }) 
             })
             // The final destination should be free
-            .filter(|(_, new_pos)| self.get_piece_at_position(*new_pos).unwrap().is_none())
+            .filter(|(_, new_pos)| self.get_piece_at_position(*new_pos).is_none())
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
                 self.new_board_with_moved_piece(*old_pos, new_pos, checked).ok()
@@ -79,7 +79,7 @@ impl PawnMovement for Board {
                 }
             })
             // The final destination should be free
-            .filter(|(_, new_pos)| self.get_piece_at_position(*new_pos).unwrap().is_none())
+            .filter(|(_, new_pos)| self.get_piece_at_position(*new_pos).is_none())
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
                 self.new_board_with_moved_piece(*old_pos, new_pos, checked)
@@ -127,7 +127,7 @@ impl PawnMovement for Board {
             .chain(pawn_capture_right_moves.clone())
             // The final destination should have an opponent's piece
             .filter(|(_, new_pos)| {
-                self.get_piece_at_position(*new_pos).unwrap()
+                self.get_piece_at_position(*new_pos)
                     .is_some_and(|(_, side)| side == opposite_side)
             })
             // Should be able to move there without error
@@ -309,7 +309,7 @@ mod test {
         // take a piece
         assert!(moved_boards.into_iter().any(|x| matches!(
             x.get_piece_at_position(UncheckedSquare { rank: 2, file: 2 }.validate(&board).unwrap()),
-            Ok(Some((PieceType::Pawn, _)))
+            Some((PieceType::Pawn, _))
         )));
     }
 
@@ -322,7 +322,7 @@ mod test {
         // None of the moves should have a pawn taking the friendly piece
         assert!(moved_boards.into_iter().all(|x| !matches!(
             x.get_piece_at_position(UncheckedSquare { rank: 2, file: 0 }.validate(&board).unwrap()),
-            Ok(Some((PieceType::Pawn, _)))
+            Some((PieceType::Pawn, _))
         )));
     }
 
@@ -336,10 +336,10 @@ mod test {
         // take the pawn en passant
         assert!(moved_boards.iter().any(|x| matches!(
             x.get_piece_at_position(UncheckedSquare { rank: 2, file: 3 }.validate(&board).unwrap()),
-            Ok(Some((PieceType::Pawn, _)))
+            Some((PieceType::Pawn, _))
         ) && matches!(
             x.get_piece_at_position(UncheckedSquare { rank: 1, file: 3 }.validate(&board).unwrap()),
-            Ok(None)
+            None
         )));
     }
 

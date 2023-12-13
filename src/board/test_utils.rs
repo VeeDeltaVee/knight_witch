@@ -13,7 +13,7 @@ pub fn check_for_moves(
             boards
                 .clone()
                 .into_iter()
-                .any(|x| x.get_piece_at_position(square).unwrap() == piece),
+                .any(|x| x.get_piece_at_position(square) == piece),
             "Didn't find {:?} move at rank {}, file {}",
             piece.unwrap().0,
             square.get_rank(),
@@ -26,7 +26,7 @@ pub fn check_for_moves(
             !boards
                 .clone()
                 .into_iter()
-                .any(|x| x.get_piece_at_position(square).unwrap() == piece),
+                .any(|x| x.get_piece_at_position(square) == piece),
             "Found unexpected {:?} move at rank {}, file {}",
             piece.unwrap().0,
             square.get_rank(),
