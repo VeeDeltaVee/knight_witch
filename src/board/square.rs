@@ -6,8 +6,8 @@ use super::{Board, errors::InvalidSquareError, Orientation};
 // Rank counts from the bottom, starts at 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Square {
-    pub file: usize,
-    pub rank: usize,
+    file: usize,
+    rank: usize,
 }
 
 impl Square {
