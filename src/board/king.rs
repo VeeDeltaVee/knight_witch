@@ -40,7 +40,7 @@ impl KingMovement for Board {
 #[cfg(test)]
 mod test {
     use crate::board::{
-        Side, Square, PieceType,
+        Side, square::UncheckedSquare, PieceType,
     };
 
     use super::*;
@@ -63,16 +63,14 @@ mod test {
             for file in 0..2 {
                 if (rank, file) != (1, 1) {
                     assert!(moved_boards.iter().any(|x| matches!(
-                        x.get_piece_at_position(Square {
+                        x.get_piece_at_position(UncheckedSquare {
                             rank: rank,
                             file: file
-                        })
-                        .unwrap(),
-                        Some((PieceType::King, _))
+                        }.validate(&x).unwrap()),
+                        Ok(Some((PieceType::King, _)))
                     ) && matches!(
-                        x.get_piece_at_position(Square { rank: 1, file: 1 })
-                            .unwrap(),
-                        None
+                        x.get_piece_at_position(UncheckedSquare { rank: 1, file: 1 }.validate(&x).unwrap()),
+                        Ok(None)
                     )));
                 }
             }
