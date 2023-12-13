@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Piece, PieceType, Side, Square};
+use super::{Piece, PieceType, Side, square::{Square, UncheckedSquare}};
 
 pub fn check_for_moves(
     boards: Vec<Board>,
@@ -16,8 +16,8 @@ pub fn check_for_moves(
                 .any(|x| x.get_piece_at_position(square).unwrap() == piece),
             "Didn't find {:?} move at rank {}, file {}",
             piece.unwrap().0,
-            square.rank,
-            square.file
+            square.get_rank(),
+            square.get_file()
         );
     }
 
@@ -29,8 +29,8 @@ pub fn check_for_moves(
                 .any(|x| x.get_piece_at_position(square).unwrap() == piece),
             "Found unexpected {:?} move at rank {}, file {}",
             piece.unwrap().0,
-            square.rank,
-            square.file
+            square.get_rank(),
+            square.get_file()
         );
     }
 }
@@ -49,49 +49,41 @@ pub fn get_board_for_simple_straight_moves(piece_type: PieceType) -> Board {
     let mut board = Board::with_pieces(vec![None; 8 * 8], 8);
 
     board
-        .set_piece_at_position(Some((piece_type, Side::White)), Square { rank: 2, file: 4 })
-        .unwrap();
+        .set_piece_at_position(Some((piece_type, Side::White)), UncheckedSquare { rank: 2, file: 4 }.validate(&board).unwrap());
     board
-        .set_piece_at_position(Some((piece_type, Side::White)), Square { rank: 4, file: 2 })
-        .unwrap();
+        .set_piece_at_position(Some((piece_type, Side::White)), UncheckedSquare { rank: 4, file: 2 }.validate(&board).unwrap());
 
     board
         .set_piece_at_position(
             Some((PieceType::Pawn, Side::White)),
-            Square { rank: 2, file: 5 },
-        )
-        .unwrap();
+            UncheckedSquare { rank: 2, file: 5 }.validate(&board).unwrap(),
+        );
     board
         .set_piece_at_position(
             Some((PieceType::Pawn, Side::White)),
-            Square { rank: 3, file: 1 },
-        )
-        .unwrap();
+            UncheckedSquare { rank: 3, file: 1 }.validate(&board).unwrap(),
+        );
     board
         .set_piece_at_position(
             Some((PieceType::Pawn, Side::White)),
-            Square { rank: 5, file: 7 },
-        )
-        .unwrap();
+            UncheckedSquare { rank: 5, file: 7 }.validate(&board).unwrap(),
+        );
 
     board
         .set_piece_at_position(
             Some((PieceType::Pawn, Side::Black)),
-            Square { rank: 1, file: 2 },
-        )
-        .unwrap();
+            UncheckedSquare { rank: 1, file: 2 }.validate(&board).unwrap(),
+        );
     board
         .set_piece_at_position(
             Some((PieceType::Pawn, Side::Black)),
-            Square { rank: 6, file: 2 },
-        )
-        .unwrap();
+            UncheckedSquare { rank: 6, file: 2 }.validate(&board).unwrap(),
+        );
     board
         .set_piece_at_position(
             Some((PieceType::Pawn, Side::Black)),
-            Square { rank: 6, file: 4 },
-        )
-        .unwrap();
+            UncheckedSquare { rank: 6, file: 4 }.validate(&board).unwrap(),
+        );
 
     board
 }
