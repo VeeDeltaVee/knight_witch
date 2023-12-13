@@ -5,6 +5,7 @@ pub mod bishop;
 pub mod queen;
 pub mod king;
 pub mod castling;
+pub mod square;
 mod straight_moving_piece;
 mod test_utils;
 mod errors;
@@ -17,6 +18,8 @@ use self::rook::RookMovement;
 use self::bishop::BishopMovement;
 use self::queen::QueenMovement;
 use self::king::KingMovement;
+
+use self::square::*;
 use self::errors::*;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -70,17 +73,6 @@ pub fn get_piece_from_char(ch: char) -> Piece {
          'p' => Some((PieceType::Pawn, Side::Black)),
           _  => None,
     }
-}
-
-
-// Represents a square on the board
-//
-// File counts from the left, starts at 0
-// Rank counts from the bottom, starts at 0
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Square {
-    file: usize,
-    rank: usize,
 }
 
 // Represents a Offset on the board
@@ -377,12 +369,12 @@ impl Board {
     fn validate_square(&self, square: Square) -> Result<Square, InvalidSquareError> {
         if square.file >= self.width {
             if square.rank * self.width + square.file >= self.squares.len(){
-                Err(InvalidSquareError::OutOfBounds(Orientation::Both, square))
+                Err(InvalidSquareError::OutOfBounds(Orientation::Both, square.into()))
             } else {
-                Err(InvalidSquareError::OutOfBounds(Orientation::File, square))
+                Err(InvalidSquareError::OutOfBounds(Orientation::File, square.into()))
             }
         } else if square.rank * self.width + square.file >= self.squares.len() {
-            Err(InvalidSquareError::OutOfBounds(Orientation::Rank, square))
+            Err(InvalidSquareError::OutOfBounds(Orientation::Rank, square.into()))
         } else {
             Ok(square)
         }
