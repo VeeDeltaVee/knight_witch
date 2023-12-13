@@ -21,7 +21,7 @@ impl BishopMovement for Board {
 
 #[cfg(test)]
 mod test {
-    use crate::board::{test_utils::{get_board_for_simple_straight_moves, check_for_moves}, Square, Side};
+    use crate::board::{test_utils::{get_board_for_simple_straight_moves, check_for_moves}, square::UncheckedSquare, Side};
 
     use super::*;
 
@@ -32,32 +32,32 @@ mod test {
         let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_moves = vec![
-            Square { rank: 1, file: 3 },
-            Square { rank: 0, file: 2 },
-            Square { rank: 1, file: 5 },
-            Square { rank: 0, file: 6 },
-            Square { rank: 3, file: 3 },
-            Square { rank: 3, file: 5 },
-            Square { rank: 4, file: 6 },
-            Square { rank: 5, file: 3 },
-            Square { rank: 6, file: 4 },
-            Square { rank: 5, file: 1 },
-            Square { rank: 6, file: 0 },
+            UncheckedSquare { rank: 1, file: 3 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 0, file: 2 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 1, file: 5 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 0, file: 6 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 3 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 5 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 4, file: 6 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 5, file: 3 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 6, file: 4 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 5, file: 1 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 6, file: 0 }.validate(&board).unwrap(),
         ];
 
         let unexpected_moves = vec![
-            Square { rank: 2, file: 3 },
-            Square { rank: 2, file: 5 },
-            Square { rank: 1, file: 4 },
-            Square { rank: 3, file: 4 },
-            Square { rank: 4, file: 1 },
-            Square { rank: 4, file: 3 },
-            Square { rank: 3, file: 2 },
-            Square { rank: 5, file: 2 },
-            Square { rank: 5, file: 7 },
-            Square { rank: 3, file: 1 },
-            Square { rank: 2, file: 0 },
-            Square { rank: 7, file: 5 },
+            UncheckedSquare { rank: 2, file: 3 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 2, file: 5 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 1, file: 4 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 4 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 4, file: 1 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 4, file: 3 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 2 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 5, file: 2 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 5, file: 7 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 1 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 2, file: 0 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 7, file: 5 }.validate(&board).unwrap(),
         ];
 
         check_for_moves(
