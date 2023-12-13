@@ -56,7 +56,7 @@ impl KnightMovement for Board {
 mod test {
     use super::*;
     use crate::board::test_utils::check_for_moves;
-    use crate::board::Square;
+    use crate::board::square::UncheckedSquare;
 
     // Returns a board with the setup
     // P.....
@@ -71,53 +71,45 @@ mod test {
         board
             .set_piece_at_position(
                 Some((PieceType::Knight, Side::White)),
-                Square { rank: 1, file: 3 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 1, file: 3 }.validate(&board).unwrap(),
+            );
         board
             .set_piece_at_position(
                 Some((PieceType::Knight, Side::White)),
-                Square { rank: 3, file: 1 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 3, file: 1 }.validate(&board).unwrap(),
+            );
 
         board
             .set_piece_at_position(
                 Some((PieceType::Pawn, Side::White)),
-                Square { rank: 2, file: 3 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 2, file: 3 }.validate(&board).unwrap(),
+            );
         board
             .set_piece_at_position(
                 Some((PieceType::Pawn, Side::White)),
-                Square { rank: 0, file: 5 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 0, file: 5 }.validate(&board).unwrap(),
+            );
         board
             .set_piece_at_position(
                 Some((PieceType::Pawn, Side::White)),
-                Square { rank: 5, file: 0 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 5, file: 0 }.validate(&board).unwrap(),
+            );
 
         board
             .set_piece_at_position(
                 Some((PieceType::Pawn, Side::Black)),
-                Square { rank: 2, file: 5 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 2, file: 5 }.validate(&board).unwrap(),
+            );
         board
             .set_piece_at_position(
                 Some((PieceType::Pawn, Side::Black)),
-                Square { rank: 3, file: 4 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 3, file: 4 }.validate(&board).unwrap(),
+            );
         board
             .set_piece_at_position(
                 Some((PieceType::Pawn, Side::Black)),
-                Square { rank: 4, file: 3 },
-            )
-            .unwrap();
+                UncheckedSquare { rank: 4, file: 3 }.validate(&board).unwrap(),
+            );
 
         board
     }
@@ -129,20 +121,20 @@ mod test {
         let moved_boards = board.generate_moves(true).unwrap();
 
         let expected_moves = vec![
-            Square { rank: 5, file: 2 },
-            Square { rank: 4, file: 3 },
-            Square { rank: 1, file: 2 },
-            Square { rank: 1, file: 0 },
-            Square { rank: 3, file: 2 },
-            Square { rank: 3, file: 4 },
-            Square { rank: 2, file: 1 },
-            Square { rank: 2, file: 5 },
-            Square { rank: 0, file: 1 },
+            UncheckedSquare { rank: 5, file: 2 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 4, file: 3 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 1, file: 2 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 1, file: 0 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 2 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 3, file: 4 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 2, file: 1 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 2, file: 5 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 0, file: 1 }.validate(&board).unwrap(),
         ];
         let unexpected_moves = vec![
-            Square { rank: 5, file: 0 },
-            Square { rank: 0, file: 5 },
-            Square { rank: 2, file: 3 },
+            UncheckedSquare { rank: 5, file: 0 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 0, file: 5 }.validate(&board).unwrap(),
+            UncheckedSquare { rank: 2, file: 3 }.validate(&board).unwrap(),
         ];
 
         check_for_moves(
