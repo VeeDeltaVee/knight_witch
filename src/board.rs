@@ -75,7 +75,6 @@ pub fn get_piece_from_char(ch: char) -> Piece {
     }
 }
 
-
 // Represents a Offset on the board
 // Represents an offset from a position, used for raycasting
 //

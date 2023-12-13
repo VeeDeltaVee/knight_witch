@@ -20,6 +20,16 @@ impl Square {
     }
 }
 
+#[cfg(test)]
+impl Square {
+    pub fn new(rank: usize, file: usize) -> Square {
+        Square {
+            rank,
+            file,
+        }
+    }
+}
+
 // Represents a possibly invalid location of a square
 // on the board.
 // File counts from the left, starts at 0
