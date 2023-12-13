@@ -1,9 +1,9 @@
 use super::{Board, errors::InvalidSquareError, Orientation};
 
-// Represents a square on the board
-//
-// File counts from the left, starts at 0
-// Rank counts from the bottom, starts at 0
+/// Represents a square on the board
+///
+/// File counts from the left, starts at 0
+/// Rank counts from the bottom, starts at 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Square {
     file: usize,
@@ -22,6 +22,10 @@ impl Square {
 
 #[cfg(test)]
 impl Square {
+    /// Create a square that is assumed to be valid
+    ///
+    /// This is usefull for tests when we know we have
+    /// a valid square and saves some boilerplate
     pub fn new(rank: usize, file: usize) -> Square {
         Square {
             rank,
@@ -30,10 +34,11 @@ impl Square {
     }
 }
 
-// Represents a possibly invalid location of a square
-// on the board.
-// File counts from the left, starts at 0
-// Rank counts from the bottom, starts at 0
+/// Represents a possibly invalid location of a square
+/// on the board.
+///
+/// File counts from the left, starts at 0
+/// Rank counts from the bottom, starts at 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct UncheckedSquare {
     pub file: usize,
@@ -41,7 +46,8 @@ pub struct UncheckedSquare {
 }
 
 impl UncheckedSquare {
-    // Checks that the square is valid on the given board
+    /// Checks that the square is valid on the given board
+    ///
     // TODO: validate through the type system that it's valid for only the board
     // that it's been tested on. This may require some lifetime shenanigans
     pub fn validate(self, board: &Board) -> Result<Square, InvalidSquareError> {
