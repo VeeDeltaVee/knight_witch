@@ -23,7 +23,7 @@ impl QueenMovement for Board {
 mod test {
     use crate::board::{
         test_utils::{check_for_moves, get_board_for_simple_straight_moves},
-        Side, Square,
+        Side, Square, Piece,
     };
 
     use super::*;
@@ -74,7 +74,7 @@ mod test {
             moved_boards,
             expected_moves,
             vec![],
-            Some((PieceType::Queen, Side::White)),
+            Piece::new(Side::White, PieceType::Queen),
         );
     }
 }

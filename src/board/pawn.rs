@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Offset, PieceType, Side, Square};
+use super::{Offset, PieceType::*, Side::*, Square, Piece};
 
 pub trait PawnMovement {
     fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -12,16 +12,16 @@ impl PawnMovement for Board {
     fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
         let mut possible_moves = vec![];
         let pawn_positions =
-            self.get_positions_of_pieces_with_given_side_and_type(PieceType::Pawn, Side::White)?;
+            self.get_positions_of_matching_pieces(Piece::new(White, Pawn))?;
 
         let single_move_offset: isize = match self.current_move {
-            Side::White => 1,
-            Side::Black => -1,
+            White => 1,
+            Black => -1,
         };
 
         let starting_rank_for_current_side = match self.current_move {
-            Side::White => 1,
-            Side::Black => self.width - 1,
+            White => 1,
+            Black => self.width - 1,
         };
 
         let current_side = self.current_move;
@@ -131,7 +131,7 @@ impl PawnMovement for Board {
             // The final destination should have an opponent's piece
             .filter(|(_, new_pos)| {
                 self.get_piece_at_position(*new_pos)
-                    .is_ok_and(|piece| piece.is_some_and(|(_, side)| side == opposite_side))
+                    .is_ok_and(|piece| piece.is_some_and(|p| p.side == opposite_side))
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
@@ -151,7 +151,7 @@ impl PawnMovement for Board {
                     .and_then(|mut board| {
                         board
                             .set_piece_at_position(
-                                None,
+                                None.into(),
                                 Square {
                                     rank: new_pos.rank.checked_add_signed(-single_move_offset)?,
                                     file: new_pos.file,
@@ -182,41 +182,41 @@ mod test {
     // Where o is the en passant target
     fn get_test_board_for_pawn_captures() -> Board {
         let mut board = Board {
-            squares: vec![None; 5 * 5],
+            squares: vec![None.into(); 5 * 5],
             width: 5,
             en_passant_target: Some(Square { rank: 2, file: 3 }),
-            current_move: Side::White,
+            current_move: White,
             castling_availability: [false, false, false, false],
         };
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, Side::White)),
+                Piece::new(White, Pawn).into(),
                 Square { rank: 1, file: 1 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Bishop, Side::White)),
+                Piece::new(White, Bishop).into(),
                 Square { rank: 2, file: 0 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Knight, Side::Black)),
+                Piece::new(Black, Knight).into(),
                 Square { rank: 2, file: 2 },
             )
             .unwrap();
 
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, Side::White)),
+                Piece::new(White, Pawn).into(),
                 Square { rank: 1, file: 4 },
             )
             .unwrap();
         board
             .set_piece_at_position(
-                Some((PieceType::Pawn, Side::Black)),
+                Piece::new(Black, Pawn).into(),
                 Square { rank: 1, file: 3 },
             )
             .unwrap();
@@ -233,25 +233,25 @@ mod test {
     // .......
     fn get_test_board_for_simple_pawn_moves() -> Board {
         let mut squares = vec![None; 7 * 6];
-        squares[7] = Some((PieceType::Pawn, Side::White));
-        squares[9] = Some((PieceType::Pawn, Side::White));
-        squares[11] = Some((PieceType::Pawn, Side::White));
-        squares[12] = Some((PieceType::Pawn, Side::White));
+        squares[7] = Some(Piece::new(White, Pawn));
+        squares[9] = Some(Piece::new(White, Pawn));
+        squares[11] = Some(Piece::new(White, Pawn));
+        squares[12] = Some(Piece::new(White, Pawn));
 
-        squares[15] = Some((PieceType::Pawn, Side::White));
-        squares[16] = Some((PieceType::Pawn, Side::Black));
-        squares[20] = Some((PieceType::Pawn, Side::White));
+        squares[15] = Some(Piece::new(White, Pawn));
+        squares[16] = Some(Piece::new(Black, Pawn));
+        squares[20] = Some(Piece::new(White, Pawn));
 
-        squares[25] = Some((PieceType::Pawn, Side::Black));
-        squares[27] = Some((PieceType::Pawn, Side::Black));
+        squares[25] = Some(Piece::new(Black, Pawn));
+        squares[27] = Some(Piece::new(Black, Pawn));
 
-        squares[33] = Some((PieceType::Pawn, Side::Black));
+        squares[33] = Some(Piece::new(Black, Pawn));
 
         Board {
             squares,
             width: 7,
             en_passant_target: None,
-            current_move: Side::White,
+            current_move: White,
             castling_availability: [false, false, false, false],
         }
     }
@@ -274,7 +274,7 @@ mod test {
             moved_boards,
             expected_single_square_pushes,
             unexpected_single_square_pushes,
-            Some((PieceType::Pawn, Side::White)),
+            Piece::new(White, Pawn),
         );
     }
 
@@ -296,7 +296,7 @@ mod test {
             moved_boards,
             expected_double_square_pushes,
             unexpected_double_square_pushes,
-            Some((PieceType::Pawn, Side::White)),
+            Piece::new(White, Pawn).into(),
         );
     }
 
@@ -312,7 +312,7 @@ mod test {
         assert!(moved_boards.into_iter().any(|x| matches!(
             x.get_piece_at_position(Square { rank: 2, file: 2 })
                 .unwrap(),
-            Some((PieceType::Pawn, _))
+            Some(Piece { piece_type: Pawn, .. })
         )));
     }
 
@@ -326,7 +326,7 @@ mod test {
         assert!(moved_boards.into_iter().all(|x| !matches!(
             x.get_piece_at_position(Square { rank: 2, file: 0 })
                 .unwrap(),
-            Some((PieceType::Pawn, _))
+            Some(Piece { piece_type: Pawn, .. })
         )));
     }
 
@@ -341,7 +341,7 @@ mod test {
         assert!(moved_boards.iter().any(|x| matches!(
             x.get_piece_at_position(Square { rank: 2, file: 3 })
                 .unwrap(),
-            Some((PieceType::Pawn, _))
+            Some(Piece { piece_type: Pawn, .. })
         ) && matches!(
             x.get_piece_at_position(Square { rank: 1, file: 3 })
                 .unwrap(),
@@ -360,7 +360,7 @@ mod test {
              ....\n"
         ).unwrap();
 
-        board.current_move = Side::Black;
+        board.current_move = Black;
 
         // Push pawn to create en_passant_target
         board.make_move(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}, true).unwrap();

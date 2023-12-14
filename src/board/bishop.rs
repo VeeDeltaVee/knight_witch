@@ -21,7 +21,7 @@ impl BishopMovement for Board {
 
 #[cfg(test)]
 mod test {
-    use crate::board::{test_utils::{get_board_for_simple_straight_moves, check_for_moves}, Square, Side};
+    use crate::board::{test_utils::{get_board_for_simple_straight_moves, check_for_moves}, Square, Side, Piece};
 
     use super::*;
 
@@ -64,7 +64,7 @@ mod test {
             moved_boards,
             expected_moves,
             unexpected_moves,
-            Some((PieceType::Bishop, Side::White)),
+            Piece::new(Side::White, PieceType::Bishop),
         );
     }
 }

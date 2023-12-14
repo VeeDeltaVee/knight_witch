@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Offset, PieceType};
+use super::{Offset, PieceType, Piece};
 
 pub trait StraightMovingPieceMovement {
     fn generate_straight_moves(&self, offsets: &[Offset], piece_type: PieceType, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -11,7 +11,7 @@ pub trait StraightMovingPieceMovement {
 impl StraightMovingPieceMovement for Board {
     fn generate_straight_moves(&self, offsets: &[Offset], piece_type: PieceType, checked: bool) -> Result<Vec<Board>, &'static str> {
         let positions = self
-            .get_positions_of_pieces_with_given_side_and_type(piece_type, self.current_move)?;
+            .get_positions_of_matching_pieces(Piece::new(self.current_move, piece_type))?;
 
         let moves = positions
             .into_iter()

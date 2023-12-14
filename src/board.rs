@@ -8,9 +8,13 @@ pub mod castling;
 mod straight_moving_piece;
 mod test_utils;
 mod errors;
+mod piece;
 
 use crate::board::pawn::PawnMovement;
+use std::convert::TryFrom;
 use std::fmt;
+
+pub use piece::*;
 
 use self::knight::KnightMovement;
 use self::rook::RookMovement;
@@ -18,60 +22,6 @@ use self::bishop::BishopMovement;
 use self::queen::QueenMovement;
 use self::king::KingMovement;
 use self::errors::*;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum PieceType {
-    Pawn,
-    Knight,
-    Bishop,
-    Rook,
-    Queen,
-    King,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Side {
-    White,
-    Black,
-}
-
-impl Side {
-    fn flip(self: Self) -> Self {
-        match self {
-            Self::White => Self::Black,
-            Self::Black => Self::White,
-        }
-    }
-}
-
-pub type Piece = Option<(PieceType, Side)>;
-
-pub fn get_piece_side(piece: Piece) -> Option<Side> {
-    piece.map(|(_, side)| side)
-}
-
-pub fn get_piece_type(piece: Piece) -> Option<PieceType> {
-    piece.map(|(t, _)| t)
-}
-
-pub fn get_piece_from_char(ch: char) -> Piece {
-    match ch {
-         'K' => Some((PieceType::King, Side::White)),
-         'Q' => Some((PieceType::Queen, Side::White)),
-         'R' => Some((PieceType::Rook, Side::White)),
-         'B' => Some((PieceType::Bishop, Side::White)),
-         'N' => Some((PieceType::Knight, Side::White)),
-         'P' => Some((PieceType::Pawn, Side::White)),
-         'k' => Some((PieceType::King, Side::Black)),
-         'q' => Some((PieceType::Queen, Side::Black)),
-         'r' => Some((PieceType::Rook, Side::Black)),
-         'b' => Some((PieceType::Bishop, Side::Black)),
-         'n' => Some((PieceType::Knight, Side::Black)),
-         'p' => Some((PieceType::Pawn, Side::Black)),
-          _  => None,
-    }
-}
-
 
 // Represents a square on the board
 //
@@ -101,7 +51,7 @@ pub struct Board {
     //
     // Indices work as follows: we start out at the bottom file, go left to
     // right, and then once we reach the end of a file we go up a file.
-    squares: Vec<Piece>,
+    squares: Vec<Option<Piece>>,
     width: usize,
     en_passant_target: Option<Square>,
 
@@ -134,22 +84,8 @@ impl fmt::Display for Board {
                 }
 
                 let piece = self.get_piece_at_position(square).unwrap();
-                let representation = match piece {
-                    None => ".",
-                    Some((PieceType::Pawn, Side::White)) => "P",
-                    Some((PieceType::Rook, Side::White)) => "R",
-                    Some((PieceType::Knight, Side::White)) => "N",
-                    Some((PieceType::Bishop, Side::White)) => "B",
-                    Some((PieceType::Queen, Side::White)) => "Q",
-                    Some((PieceType::King, Side::White)) => "K",
-                    Some((PieceType::Pawn, Side::Black)) => "p",
-                    Some((PieceType::Rook, Side::Black)) => "r",
-                    Some((PieceType::Knight, Side::Black)) => "n",
-                    Some((PieceType::Bishop, Side::Black)) => "b",
-                    Some((PieceType::Queen, Side::Black)) => "q",
-                    Some((PieceType::King, Side::Black)) => "k",
-                };
-                write!(f, "{}", representation)?;
+                let character = piece.as_ref().map_or('.', char::from);
+                write!(f, "{}", character)?;
             }
             write!(f, "\n")?;
         }
@@ -160,28 +96,29 @@ impl fmt::Display for Board {
 impl Board {
     // Construct a default board
     pub fn default() -> Board {
+        use { PieceType::*, Side::* };
         let mut white_back_rank = vec![
-            Some((PieceType::Rook, Side::White)),
-            Some((PieceType::Knight, Side::White)),
-            Some((PieceType::Bishop, Side::White)),
-            Some((PieceType::Queen, Side::White)),
-            Some((PieceType::King, Side::White)),
-            Some((PieceType::Bishop, Side::White)),
-            Some((PieceType::Knight, Side::White)),
-            Some((PieceType::Rook, Side::White)),
+            Some(Piece::new(White, Rook)),
+            Some(Piece::new(White, Knight)),
+            Some(Piece::new(White, Bishop)),
+            Some(Piece::new(White, Queen)),
+            Some(Piece::new(White, King)),
+            Some(Piece::new(White, Bishop)),
+            Some(Piece::new(White, Knight)),
+            Some(Piece::new(White, Rook)),
         ];
-        let mut white_pawn_rank = vec![Some((PieceType::Pawn, Side::White)); 8];
-        let mut empty_ranks = vec![None; 8 * 4];
-        let mut black_pawn_rank = vec![Some((PieceType::Pawn, Side::Black)); 8];
+        let mut white_pawn_rank = vec![Some(Piece::new(White, Pawn)); 8];
+        let mut empty_ranks = vec![None.into(); 8 * 4];
+        let mut black_pawn_rank = vec![Some(Piece::new(Black, Pawn)); 8];
         let mut black_back_rank = vec![
-            Some((PieceType::Rook, Side::Black)),
-            Some((PieceType::Knight, Side::Black)),
-            Some((PieceType::Bishop, Side::Black)),
-            Some((PieceType::Queen, Side::Black)),
-            Some((PieceType::King, Side::Black)),
-            Some((PieceType::Bishop, Side::Black)),
-            Some((PieceType::Knight, Side::Black)),
-            Some((PieceType::Rook, Side::Black)),
+            Some(Piece::new(Black, Rook)),
+            Some(Piece::new(Black, Knight)),
+            Some(Piece::new(Black, Bishop)),
+            Some(Piece::new(Black, Queen)),
+            Some(Piece::new(Black, King)),
+            Some(Piece::new(Black, Bishop)),
+            Some(Piece::new(Black, Knight)),
+            Some(Piece::new(Black, Rook)),
         ];
 
         let mut squares = vec![];
@@ -209,8 +146,9 @@ impl Board {
     /// if castling is available, we don't try, and say it's not
     /// available at all
     pub fn from_art(art: &str) -> Result<Self, &'static str> {
-        let pieces = art.lines()
-            .map(|line| line.chars().map(get_piece_from_char)).rev();
+        let pieces  = art.lines()
+            .map(|line| line.chars().map(Piece::try_from).map(Result::ok))
+            .rev();
 
         let mut widths = pieces.clone().map(|rank| rank.count());
         let first_width = widths.next().ok_or("Can't create board with no height")?;
@@ -219,7 +157,7 @@ impl Board {
         Ok(Board::with_pieces(pieces.flatten().collect(), first_width))
     }
 
-    pub fn with_pieces(pieces: Vec<Piece>, width: usize) -> Self {
+    pub fn with_pieces(pieces: Vec<Option<Piece>>, width: usize) -> Self {
         Board {
             squares: pieces,
             width: width,
@@ -251,7 +189,7 @@ impl Board {
     pub fn get_piece_at_position(
         &self,
         square: Square,
-    ) -> Result<Option<(PieceType, Side)>, InvalidSquareError> {
+    ) -> Result<Option<Piece>, InvalidSquareError> {
         self.validate_square(square).map(|square| {
             self.squares[square.rank * self.width + square.file]
         }) 
@@ -262,7 +200,7 @@ impl Board {
     // Returns error if position is out of bounds
     pub fn set_piece_at_position(
         &mut self,
-        piece: Piece,
+        piece: Option<Piece>,
         square: Square,
     ) -> Result<(), &'static str> {
         Ok(self.validate_square(square).map(|square| {
@@ -290,7 +228,8 @@ impl Board {
     }
 
     pub fn check_king_threat(&self) -> Result<bool, &'static str> {
-        let kings = self.get_positions_of_pieces_with_given_side_and_type(PieceType::King, self.current_move)?;
+        use PieceType::King;
+        let kings = self.get_positions_of_matching_pieces(Piece::new(self.current_move, King))?;
         let num_kings = kings.len();
 
         let mut skipped_move_board = self.clone();
@@ -300,7 +239,9 @@ impl Board {
 
         let is_king_in_threat = other_sides_potential_moves
             .iter()
-            .map(|b| b.get_positions_of_pieces_with_given_side_and_type(PieceType::King, self.current_move).map(|ks| ks.len()).unwrap_or(0))
+            .map(|b| b
+                .get_positions_of_matching_pieces(Piece::new(self.current_move, King))
+                .map(|ks| ks.len()).unwrap_or(0))
             .any(|n| {
                 num_kings != n
             });
@@ -319,19 +260,19 @@ impl Board {
         let old_piece = self.get_piece_at_position(old_pos)?;
         let new_piece = self.get_piece_at_position(new_pos)?;
 
-        let is_old_piece_currently_moving = get_piece_side(old_piece)
-            .ok_or("Can't make move, old_pos doesn't have piece")?
+        let is_old_piece_currently_moving = old_piece
+            .ok_or("Can't make move, old_pos doesn't have piece")?.side
             == self.current_move;
-        let is_new_piece_ours = get_piece_side(new_piece).is_some_and(|s| s == self.current_move);
+        let is_new_piece_ours = new_piece.is_some_and(|s| s.side == self.current_move);
 
         match (is_old_piece_currently_moving, is_new_piece_ours) {
             (true, false) => {
                 self.set_piece_at_position(old_piece, new_pos)?;
-                self.set_piece_at_position(None, old_pos)?;
+                self.set_piece_at_position(None.into(), old_pos)?;
 
                 let offset = self.get_offset_of_move(old_pos, new_pos);
 
-                if old_piece.is_some_and(|(t, _)| t == PieceType::Pawn) &&
+                if old_piece.is_some_and(|p| p.piece_type == PieceType::Pawn) &&
                     offset.rank.abs() == 2 &&
                     old_pos.file == new_pos.file
                 {
@@ -388,15 +329,14 @@ impl Board {
         }
     }
 
-    fn get_positions_of_pieces_with_given_side_and_type(
+    fn get_positions_of_matching_pieces(
         &self,
-        piece_type: PieceType,
-        piece_side: Side,
+        piece: Piece,
     ) -> Result<Vec<Square>, &'static str> {
         self.squares
             .iter()
             .enumerate()
-            .filter(|(_, x)| **x == Some((piece_type, piece_side)))
+            .filter(|(_, x)| **x == piece.into())
             .map(|(index, _)| self.index_to_position(index))
             .collect()
     }
@@ -411,8 +351,8 @@ impl Board {
             match self.add_offset_to_position(final_pos, offset) {
                 Err(_) => break,
                 Ok(new_pos) => match self.get_piece_at_position(new_pos).unwrap() {
-                    Some((_, side)) if side == self.current_move => break,
-                    Some((_, _)) => {
+                    Some(Piece { side, .. }) if side == self.current_move => break,
+                    Some(Piece { .. }) => {
                         if can_take {
                             final_pos = new_pos;
                         }
@@ -500,10 +440,10 @@ mod test {
             let board = Board::default();
 
             for i in 8..16 {
-                assert!(matches!(board.squares[i], Some((PieceType::Pawn, _))));
+                assert!(matches!(board.squares[i], Some(Piece {piece_type: PieceType::Pawn, .. })));
             }
             for i in 48..56 {
-                assert!(matches!(board.squares[i], Some((PieceType::Pawn, _))));
+                assert!(matches!(board.squares[i], Some(Piece {piece_type: PieceType::Pawn, .. })));
             }
         }
 
@@ -520,7 +460,7 @@ mod test {
         fn has_rooks_where_it_should() {
             let board = Board::default();
             for i in vec![0, 7, 56, 63] {
-                assert!(matches!(board.squares[i], Some((PieceType::Rook, _))));
+                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Rook, ..})));
             }
         }
 
@@ -528,7 +468,7 @@ mod test {
         fn has_knights_where_it_should() {
             let board = Board::default();
             for i in vec![1, 6, 57, 62] {
-                assert!(matches!(board.squares[i], Some((PieceType::Knight, _))));
+                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Knight, ..})));
             }
         }
 
@@ -536,7 +476,7 @@ mod test {
         fn has_bishop_where_it_should() {
             let board = Board::default();
             for i in vec![2, 5, 58, 61] {
-                assert!(matches!(board.squares[i], Some((PieceType::Bishop, _))));
+                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Bishop, ..})));
             }
         }
 
@@ -544,7 +484,7 @@ mod test {
         fn has_queens_where_it_should() {
             let board = Board::default();
             for i in vec![3, 59] {
-                assert!(matches!(board.squares[i], Some((PieceType::Queen, _))));
+                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Queen, ..})));
             }
         }
 
@@ -552,7 +492,7 @@ mod test {
         fn has_kings_where_it_should() {
             let board = Board::default();
             for i in vec![4, 60] {
-                assert!(matches!(board.squares[i], Some((PieceType::King, _))));
+                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::King, ..})));
             }
         }
 
@@ -561,11 +501,11 @@ mod test {
             let board = Board::default();
 
             for i in 0..16 {
-                assert!(matches!(board.squares[i], Some((_, Side::White))));
+                assert!(matches!(board.squares[i], Some(Piece { side: Side::White, .. })));
             }
 
             for i in 48..64 {
-                assert!(matches!(board.squares[i], Some((_, Side::Black))));
+                assert!(matches!(board.squares[i], Some(Piece { side: Side::Black, .. })));
             }
         }
     }

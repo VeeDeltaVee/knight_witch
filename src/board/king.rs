@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::Offset;
+use super::{Offset, Piece, PieceType::King};
 
 pub trait KingMovement {
     fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -14,7 +14,7 @@ impl KingMovement for Board {
             .iter()
             .map(|(x, y)| Offset { rank: *y, file: *x });
 
-        let positions = self.get_positions_of_pieces_with_given_side_and_type(super::PieceType::King, self.current_move)?;
+        let positions = self.get_positions_of_matching_pieces(Piece::new(self.current_move, King))?;
 
         let moves = positions
             .into_iter()
@@ -40,14 +40,14 @@ impl KingMovement for Board {
 #[cfg(test)]
 mod test {
     use crate::board::{
-        Side, Square, PieceType,
+        Side, Square,
     };
 
     use super::*;
 
     fn get_board_for_simple_king_moves() -> Board {
-        let mut pieces = vec![None; 9];
-        pieces[4] = Some((PieceType::King, Side::White));
+        let mut pieces = vec![None.into(); 9];
+        pieces[4] = Piece::new(Side::White, King).into();
 
         Board::with_pieces(pieces, 3)
     }
@@ -68,7 +68,7 @@ mod test {
                             file: file
                         })
                         .unwrap(),
-                        Some((PieceType::King, _))
+                        Some(Piece { piece_type: King, .. })
                     ) && matches!(
                         x.get_piece_at_position(Square { rank: 1, file: 1 })
                             .unwrap(),
