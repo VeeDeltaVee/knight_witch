@@ -411,8 +411,8 @@ impl Board {
             match self.add_offset_to_position(final_pos, offset) {
                 Err(_) => break,
                 Ok(new_pos) => match self.get_piece_at_position(new_pos).unwrap() {
-                    Some((_, Side::White)) => break,
-                    Some((_, Side::Black)) => {
+                    Some((_, side)) if side == self.current_move => break,
+                    Some((_, _)) => {
                         if can_take {
                             final_pos = new_pos;
                         }
