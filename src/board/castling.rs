@@ -1,6 +1,6 @@
 use super::{Side, Board};
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum CastlingDirection {
     Kingside,
     Queenside

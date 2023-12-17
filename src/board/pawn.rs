@@ -171,7 +171,7 @@ impl PawnMovement for Board {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::board::test_utils::check_for_moves;
+    use crate::board::{test_utils::check_for_moves, chess_move::ChessMove::SimpleMove};
 
     // Returns a board with the setup
     // .....
@@ -363,7 +363,10 @@ mod test {
         board.current_move = Black;
 
         // Push pawn to create en_passant_target
-        board.make_move(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}, true).unwrap();
+        board.make_move(
+            SimpleMove(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}),
+            true
+        ).unwrap();
 
         assert_eq!(board.en_passant_target, Some(Square { file: 1, rank: 3 }));
     }

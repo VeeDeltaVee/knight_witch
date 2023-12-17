@@ -1,3 +1,4 @@
+pub mod chess_move;
 pub mod knight;
 pub mod pawn;
 pub mod rook;
@@ -16,6 +17,7 @@ use std::fmt;
 
 pub use piece::*;
 
+use self::chess_move::ChessMove;
 use self::knight::KnightMovement;
 use self::rook::RookMovement;
 use self::bishop::BishopMovement;
@@ -223,7 +225,7 @@ impl Board {
         checked: bool,
     ) -> Result<Board, &'static str> {
         let mut new_board = self.clone();
-        new_board.make_move(old_pos, new_pos, checked)?;
+        new_board.make_move(ChessMove::SimpleMove(old_pos, new_pos), checked)?;
         Ok(new_board)
     }
 
@@ -249,52 +251,77 @@ impl Board {
         Ok(is_king_in_threat)
     }
 
-    // Moves the piece at given old position to given new position in place
+    // Executes the given `chess_move` in place on self
     //
-    // Returns error if either position is out of bounds, if there's no piece at
-    // old position, if there's no piece at the new position, or if the piece
-    // to be moved isn't CurrentlyMoving
-    //
-    // TODO: Needs to fail when currently-moving king is in check
-    pub fn make_move(&mut self, old_pos: Square, new_pos: Square, checked: bool) -> Result<(), &'static str> {
-        let old_piece = self.get_piece_at_position(old_pos)?;
-        let new_piece = self.get_piece_at_position(new_pos)?;
+    // Returns error if the move can't be performed
+    pub fn make_move(&mut self, chess_move: ChessMove, checked: bool) -> Result<(), &'static str> {
+        match chess_move {
+            ChessMove::SimpleMove(from, to) => self.make_simple_move(from, to, checked)?,
+            ChessMove::Castling(dir) => todo!(),
+        };
 
-        let is_old_piece_currently_moving = old_piece
-            .ok_or("Can't make move, old_pos doesn't have piece")?.side
-            == self.current_move;
-        let is_new_piece_ours = new_piece.is_some_and(|s| s.side == self.current_move);
+        self.update_en_passant_target(&chess_move)?;
 
-        match (is_old_piece_currently_moving, is_new_piece_ours) {
-            (true, false) => {
-                self.set_piece_at_position(old_piece, new_pos)?;
-                self.set_piece_at_position(None.into(), old_pos)?;
+        self.current_move = self.current_move.flip();
 
-                let offset = self.get_offset_of_move(old_pos, new_pos);
+        Ok(())
+    }
 
-                if old_piece.is_some_and(|p| p.piece_type == PieceType::Pawn) &&
-                    offset.rank.abs() == 2 &&
-                    old_pos.file == new_pos.file
+    fn make_simple_move(
+        &mut self,
+        from: Square,
+        to: Square,
+        checked: bool,
+    ) -> Result<(), &'static str> {
+        let old_piece = self.get_piece_at_position(from)?;
+        let new_piece = self.get_piece_at_position(to)?;
+
+        if old_piece
+            .ok_or("Can't make move, old_pos doesn't have piece")?
+            .side != self.current_move
+        {
+            Err("Can't make move, piece at old_pos isn't currently moving")
+        } else if new_piece.is_some_and(|s| s.side == self.current_move) {
+            Err("Can't make move, friendly piece exists at new_pos")
+        } else {
+            self.set_piece_at_position(None, from)?;
+            self.set_piece_at_position(old_piece, to)?;
+
+            if checked && self.check_king_threat()? {
+                Err("Can't make move, there's King in check")
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    /// Figure out how `chess_move` affects en_passant_target
+    /// and update accordingly
+    fn update_en_passant_target(&mut self, chess_move: &ChessMove) -> Result<(), &'static str> {
+        match *chess_move {
+            ChessMove::Castling(_) => todo!(),
+            ChessMove::SimpleMove(from, to) => {
+                // Note: we're getting the piece at `to` because at this point
+                // the piece has already been moved and is at the new position
+                let old_piece = self.get_piece_at_position(to)?;
+                let offset = self.get_offset_of_move(from, to);
+
+                if old_piece.is_some_and(|p| p.piece_type == PieceType::Pawn)
+                    && offset.rank.abs() == 2
+                    && from.file == to.file
                 {
                     let en_passent_target_dir = Offset {
                         rank: offset.rank / 2,
                         file: 0
                     };
 
-                    self.en_passant_target = Some(self.add_offset_to_position(old_pos, en_passent_target_dir)?);
+                    self.en_passant_target = Some(self.add_offset_to_position(from, en_passent_target_dir)?);
                 } else {
                     self.en_passant_target = None;
                 }
 
-                if checked && self.check_king_threat()? {
-                    Err("Can't make move, there's King in check")
-                } else {
-                    self.current_move = self.current_move.flip();
-                    Ok(())
-                }
+                Ok(())
             }
-            (false, _) => Err("Can't make move, piece at old_pos isn't CurrentlyMoving"),
-            (_, true) => Err("Can't make move, friendly piece exists at new_pos"),
         }
     }
 

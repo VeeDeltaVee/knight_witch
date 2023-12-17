@@ -26,8 +26,7 @@ impl KingMovement for Board {
             })
             .flatten()
             .filter_map(|(old, new)| {
-                let mut new_board = self.clone();
-                new_board.make_move(old, new, checked).ok()?;
+                let new_board = self.new_board_with_moved_piece(old, new, checked).ok()?;
                 Some(new_board)
             })
             .collect();
