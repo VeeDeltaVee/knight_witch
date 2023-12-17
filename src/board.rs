@@ -1,15 +1,17 @@
+pub mod bishop;
+pub mod castling;
 pub mod chess_move;
+pub mod king;
 pub mod knight;
 pub mod pawn;
-pub mod rook;
-pub mod bishop;
 pub mod queen;
-pub mod king;
-pub mod castling;
-mod straight_moving_piece;
-mod test_utils;
+pub mod rook;
+
+
 mod errors;
 mod piece;
+mod straight_moving_piece;
+mod test_utils;
 
 use crate::board::pawn::PawnMovement;
 use std::convert::TryFrom;
@@ -17,13 +19,14 @@ use std::fmt;
 
 pub use piece::*;
 
-use self::chess_move::ChessMove;
-use self::knight::KnightMovement;
-use self::rook::RookMovement;
 use self::bishop::BishopMovement;
-use self::queen::QueenMovement;
-use self::king::KingMovement;
+use self::castling::{CastlingMovement, CastlingState};
+use self::chess_move::ChessMove;
 use self::errors::*;
+use self::king::KingMovement;
+use self::knight::KnightMovement;
+use self::queen::QueenMovement;
+use self::rook::RookMovement;
 
 // Represents a square on the board
 //
@@ -257,10 +260,11 @@ impl Board {
     pub fn make_move(&mut self, chess_move: ChessMove, checked: bool) -> Result<(), &'static str> {
         match chess_move {
             ChessMove::SimpleMove(from, to) => self.make_simple_move(from, to, checked)?,
-            ChessMove::Castling(dir) => todo!(),
+            ChessMove::Castling(dir) => self.castle(dir, checked)?,
         };
 
         self.update_en_passant_target(&chess_move)?;
+        self.update_castling_state(&chess_move);
 
         self.current_move = self.current_move.flip();
 
@@ -299,7 +303,10 @@ impl Board {
     /// and update accordingly
     fn update_en_passant_target(&mut self, chess_move: &ChessMove) -> Result<(), &'static str> {
         match *chess_move {
-            ChessMove::Castling(_) => todo!(),
+            ChessMove::Castling(_) => {
+                self.en_passant_target = None;
+                Ok(())
+            },
             ChessMove::SimpleMove(from, to) => {
                 // Note: we're getting the piece at `to` because at this point
                 // the piece has already been moved and is at the new position
@@ -539,8 +546,7 @@ mod test {
 
     #[test]
     fn from_art_works_as_expected() {
-        let art =
-            "rnbqkbnr\n\
+        let art = "rnbqkbnr\n\
              pppppppp\n\
              ........\n\
              ........\n\
