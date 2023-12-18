@@ -141,3 +141,60 @@ impl CastlingMovement for Board {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    mod castling_state {
+        use super::*;
+
+        mod update_castling_state {
+            use std::convert::TryInto;
+
+            use crate::board::Side;
+
+            use super::*;
+
+            #[test]
+            fn doesnt_disallow_castling_if_king_and_rook_dont_move() {
+                let mut board = Board::default();
+
+                // Queen's gambit declined
+                let moves = ["d2d4", "d7d5", "c2c4", "e7e6"];
+                for chess_move in moves {
+                    board.make_move(chess_move.try_into().unwrap(), true).unwrap();
+                }
+
+                assert!(board.castling_availability.iter().all(|&a| a));
+            }
+
+            #[test]
+            fn disallow_castling_if_king_moves() {
+                let mut board = Board::default();
+
+                // Bongcloud
+                let moves = ["e2e4", "e7e5", "e1e2"];
+                for chess_move in moves {
+                    board.make_move(chess_move.try_into().unwrap(), true).unwrap();
+                }
+
+                assert!(!board.get_castling_state(Side::White, CastlingDirection::Queenside));
+                assert!(!board.get_castling_state(Side::White, CastlingDirection::Kingside));
+            }
+
+            #[test]
+            fn disallow_castling_if_rook_moves() {
+                let mut board = Board::default();
+
+                // Bongcloud
+                let moves = ["h2h4", "h7h5", "h1h3"];
+                for chess_move in moves {
+                    board.make_move(chess_move.try_into().unwrap(), true).unwrap();
+                }
+
+                assert!(board.get_castling_state(Side::White, CastlingDirection::Queenside));
+                assert!(!board.get_castling_state(Side::White, CastlingDirection::Kingside));
+            }
+        }
+    }
+}
