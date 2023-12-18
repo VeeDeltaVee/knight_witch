@@ -301,6 +301,8 @@ impl Board {
 
     /// Figure out how `chess_move` affects en_passant_target
     /// and update accordingly
+    ///
+    /// TODO: move this to inside the pawn movement module
     fn update_en_passant_target(&mut self, chess_move: &ChessMove) -> Result<(), &'static str> {
         match *chess_move {
             ChessMove::Castling(_) => {
