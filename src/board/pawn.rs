@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Offset, PieceType::*, Side::*, Square, Piece};
+use super::{Offset, PieceType::*, Side::*, Square, UncheckedSquare, Piece};
 
 pub trait PawnMovement {
     fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
@@ -33,11 +33,16 @@ impl PawnMovement for Board {
             .filter_map(|pos| {
                 Some((
                     pos,
-                    Square {
+                    UncheckedSquare {
                         file: pos.file,
                         rank: pos.rank.checked_add_signed(single_move_offset)?,
                     },
                 ))
+            })
+            .filter_map(|(pos, new_pos)| {
+                self.check_square(new_pos)
+                    .ok()
+                    .map(|checked| (pos, checked))
             })
             // The final destination should be free
             .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
@@ -106,7 +111,7 @@ impl PawnMovement for Board {
                 .filter_map(|pos| {
                     Some((
                         pos,
-                        Square {
+                        UncheckedSquare {
                             file: pos.file - 1,
                             rank: pos.rank.checked_add_signed(single_move_offset)?,
                         },
@@ -118,7 +123,7 @@ impl PawnMovement for Board {
             .filter_map(|pos| {
                 Some((
                     pos,
-                    Square {
+                    UncheckedSquare {
                         file: pos.file + 1,
                         rank: pos.rank.checked_add_signed(single_move_offset)?,
                     },
@@ -129,6 +134,9 @@ impl PawnMovement for Board {
             .clone()
             .chain(pawn_capture_right_moves.clone())
             // The final destination should have an opponent's piece
+            .filter_map(|(pos, new_pos)| {
+                Some((pos, self.check_square(new_pos).ok()?))
+            })
             .filter(|(_, new_pos)| {
                 self.get_piece_at_position(*new_pos)
                     .is_ok_and(|piece| piece.is_some_and(|p| p.side == opposite_side))
@@ -143,6 +151,9 @@ impl PawnMovement for Board {
         let en_passant_boards = pawn_capture_left_moves
             .chain(pawn_capture_right_moves)
             // The final destination should be the en passant target, set by the opponent's last move
+            .filter_map(|(old_pos, new_pos)| {
+                Some((old_pos, self.check_square(new_pos).ok()?))
+            })
             .filter(|(_, new_pos)| Some(*new_pos) == self.en_passant_target)
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {

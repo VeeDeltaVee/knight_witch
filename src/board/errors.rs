@@ -1,4 +1,4 @@
-use super::{Square, Offset};
+use super::{UncheckedSquare, Offset};
 
 /// Helper enum to indicate whether a given error is referencing a row or column on the board
 #[derive(Debug)]
@@ -30,7 +30,7 @@ impl From<InvalidOffsetError> for &'static str  {
 #[derive(Debug)]
 pub enum InvalidSquareError {
     /// Indicates that the given square would be off the top or right side of the board
-    OutOfBounds(Orientation, Square),
+    OutOfBounds(Orientation, UncheckedSquare),
 }
 
 impl From<InvalidSquareError> for &'static str {
