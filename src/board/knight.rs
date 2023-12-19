@@ -10,16 +10,14 @@ pub trait KnightMovement {
 
 impl KnightMovement for Board {
     fn generate_knight_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
-        let jumps = vec![
-            (-1, 2),
+        let jumps = [(-1, 2),
             (1, 2),
             (-2, 1),
             (2, 1),
             (-2, -1),
             (2, -1),
             (-1, -2),
-            (1, -2),
-        ];
+            (1, -2)];
 
         let knight_positions =
             self.get_positions_of_matching_pieces(Piece::new(White, Knight))?;
@@ -66,7 +64,7 @@ mod test {
     // ...K..
     // .....P
     fn get_board_for_simple_knight_moves() -> Board {
-        let mut board = Board::with_pieces(vec![None.into(); 6 * 6], 6);
+        let mut board = Board::with_pieces(vec![None; 6 * 6], 6);
 
         board
             .set_piece_at_position(
@@ -149,7 +147,7 @@ mod test {
             moved_boards,
             expected_moves,
             unexpected_moves,
-            Piece::new(White, Knight).into(),
+            Piece::new(White, Knight),
         );
     }
 }

@@ -162,7 +162,7 @@ impl PawnMovement for Board {
                     .and_then(|mut board| {
                         board
                             .set_piece_at_position(
-                                None.into(),
+                                None,
                                 Square {
                                     rank: new_pos.rank.checked_add_signed(-single_move_offset)?,
                                     file: new_pos.file,
@@ -193,7 +193,7 @@ mod test {
     // Where o is the en passant target
     fn get_test_board_for_pawn_captures() -> Board {
         let mut board = Board {
-            squares: vec![None.into(); 5 * 5],
+            squares: vec![None; 5 * 5],
             width: 5,
             en_passant_target: Some(Square { rank: 2, file: 3 }),
             current_move: White,
@@ -307,7 +307,7 @@ mod test {
             moved_boards,
             expected_double_square_pushes,
             unexpected_double_square_pushes,
-            Piece::new(White, Pawn).into(),
+            Piece::new(White, Pawn),
         );
     }
 
@@ -353,11 +353,8 @@ mod test {
             x.get_piece_at_position(Square { rank: 2, file: 3 })
                 .unwrap(),
             Some(Piece { piece_type: Pawn, .. })
-        ) && matches!(
-            x.get_piece_at_position(Square { rank: 1, file: 3 })
-                .unwrap(),
-            None
-        )));
+        ) && x.get_piece_at_position(Square { rank: 1, file: 3 })
+                .unwrap().is_none()));
     }
 
     #[test]

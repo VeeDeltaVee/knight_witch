@@ -18,13 +18,12 @@ impl KingMovement for Board {
 
         let moves = positions
             .into_iter()
-            .map(|pos| {
+            .flat_map(|pos| {
                 offsets
                     .clone()
                     .filter_map(move |off| self.add_offset_to_position(pos, off).ok())
                     .map(move |new| (pos, new))
             })
-            .flatten()
             .filter_map(|(old, new)| {
                 let new_board = self.new_board_with_moved_piece(old, new, checked).ok()?;
                 Some(new_board)
@@ -45,7 +44,7 @@ mod test {
     use super::*;
 
     fn get_board_for_simple_king_moves() -> Board {
-        let mut pieces = vec![None.into(); 9];
+        let mut pieces = vec![None; 9];
         pieces[4] = Piece::new(Side::White, King).into();
 
         Board::with_pieces(pieces, 3)
@@ -63,16 +62,13 @@ mod test {
                 if (rank, file) != (1, 1) {
                     assert!(moved_boards.iter().any(|x| matches!(
                         x.get_piece_at_position(Square {
-                            rank: rank,
-                            file: file
+                            rank,
+                            file
                         })
                         .unwrap(),
                         Some(Piece { piece_type: King, .. })
-                    ) && matches!(
-                        x.get_piece_at_position(Square { rank: 1, file: 1 })
-                            .unwrap(),
-                        None
-                    )));
+                    ) && x.get_piece_at_position(Square { rank: 1, file: 1 })
+                            .unwrap().is_none()));
                 }
             }
         }

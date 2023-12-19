@@ -67,14 +67,14 @@ pub struct Board {
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Board:\n")?;
+        writeln!(f, "Board:")?;
         // We want to print rank 0 at the bottom
         for rank in (0..self.squares.len() / self.width).rev() {
             write!(f, "\t")?;
             for file in 0..self.width {
                 let square = Square {
-                    rank: rank,
-                    file: file,
+                    rank,
+                    file,
                 };
                 if self.en_passant_target == Some(square) {
                     write!(f, "*")?;
@@ -85,7 +85,7 @@ impl fmt::Display for Board {
                 let character = piece.as_ref().map_or('.', char::from);
                 write!(f, "{}", character)?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -106,7 +106,7 @@ impl Board {
             Some(Piece::new(White, Rook)),
         ];
         let mut white_pawn_rank = vec![Some(Piece::new(White, Pawn)); 8];
-        let mut empty_ranks = vec![None.into(); 8 * 4];
+        let mut empty_ranks = vec![None; 8 * 4];
         let mut black_pawn_rank = vec![Some(Piece::new(Black, Pawn)); 8];
         let mut black_back_rank = vec![
             Some(Piece::new(Black, Rook)),
@@ -127,7 +127,7 @@ impl Board {
         squares.append(&mut black_back_rank);
 
         Board {
-            squares: squares,
+            squares,
             width: 8,
             en_passant_target: None,
             current_move: Side::White,
@@ -158,7 +158,7 @@ impl Board {
     pub fn with_pieces(pieces: Vec<Option<Piece>>, width: usize) -> Self {
         Board {
             squares: pieces,
-            width: width,
+            width,
             en_passant_target: None,
             current_move: Side::White,
 
@@ -277,8 +277,8 @@ impl Board {
         } else if new_piece.is_some_and(|s| s.side == self.current_move) {
             Err("Can't make move, friendly piece exists at new_pos")
         } else {
-            self.set_piece_at_position(None, from.into())?;
-            self.set_piece_at_position(old_piece, to.into())?;
+            self.set_piece_at_position(None, from)?;
+            self.set_piece_at_position(old_piece, to)?;
 
             if checked && self.check_king_threat()? {
                 Err("Can't make move, there's King in check")
@@ -329,8 +329,8 @@ impl Board {
             let rank = index / self.width;
             let file = index - rank * self.width;
             Ok(Square {
-                rank: rank as usize,
-                file: file as usize,
+                rank,
+                file,
             })
         }
     }
@@ -472,7 +472,7 @@ mod test {
         #[test]
         fn has_rooks_where_it_should() {
             let board = Board::default();
-            for i in vec![0, 7, 56, 63] {
+            for i in [0, 7, 56, 63] {
                 assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Rook, ..})));
             }
         }
@@ -480,7 +480,7 @@ mod test {
         #[test]
         fn has_knights_where_it_should() {
             let board = Board::default();
-            for i in vec![1, 6, 57, 62] {
+            for i in [1, 6, 57, 62] {
                 assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Knight, ..})));
             }
         }
@@ -488,7 +488,7 @@ mod test {
         #[test]
         fn has_bishop_where_it_should() {
             let board = Board::default();
-            for i in vec![2, 5, 58, 61] {
+            for i in [2, 5, 58, 61] {
                 assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Bishop, ..})));
             }
         }
@@ -496,7 +496,7 @@ mod test {
         #[test]
         fn has_queens_where_it_should() {
             let board = Board::default();
-            for i in vec![3, 59] {
+            for i in [3, 59] {
                 assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Queen, ..})));
             }
         }
@@ -504,7 +504,7 @@ mod test {
         #[test]
         fn has_kings_where_it_should() {
             let board = Board::default();
-            for i in vec![4, 60] {
+            for i in [4, 60] {
                 assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::King, ..})));
             }
         }

@@ -15,7 +15,7 @@ impl StraightMovingPieceMovement for Board {
 
         let moves = positions
             .into_iter()
-            .map(|pos| {
+            .flat_map(|pos| {
                 offsets
                     .iter()
                     .map(move |dir| (dir, self.check_ray_for_pieces(pos, *dir, true)))
@@ -23,7 +23,6 @@ impl StraightMovingPieceMovement for Board {
                     .flatten()
                     .map(move |new| (pos, new))
             })
-            .flatten()
             .filter_map(|(old, new)| {
                 self.new_board_with_moved_piece(old, new, checked).ok()
             })

@@ -137,7 +137,8 @@ impl CastlingMovement for Board {
             return Err("Can't castle");
         }
 
-        Ok(self.unchecked_castle(dir))
+        self.unchecked_castle(dir);
+        Ok(())
     }
 }
 

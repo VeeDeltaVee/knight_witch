@@ -47,7 +47,7 @@ pub fn check_for_moves(
 // ........
 // with X as a straight-moving piece (bishop, rook, or queen)
 pub fn get_board_for_simple_straight_moves(piece_type: PieceType) -> Board {
-    let mut board = Board::with_pieces(vec![None.into(); 8 * 8], 8);
+    let mut board = Board::with_pieces(vec![None; 8 * 8], 8);
 
     board
         .set_piece_at_position(Piece::new(White, piece_type).into(), Square { rank: 2, file: 4 })

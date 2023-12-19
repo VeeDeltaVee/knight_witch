@@ -292,7 +292,7 @@ mod test {
 
                 for side in sides {
                     for dir in directions {
-                        assert_eq!(board.get_castling_state(side, dir), true);
+                        assert!(board.get_castling_state(side, dir));
                     }
                 }
             }
@@ -302,21 +302,17 @@ mod test {
                 let mut board = Board::default();
                 board.castling_availability = [true, false, true, false];
 
-                assert_eq!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Kingside),
-                    false
+                assert!(
+                    !board.get_castling_state(Side::Black, CastlingDirection::Kingside)
                 );
-                assert_eq!(
-                    board.get_castling_state(Side::White, CastlingDirection::Kingside),
-                    false
+                assert!(
+                    !board.get_castling_state(Side::White, CastlingDirection::Kingside)
                 );
-                assert_eq!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Queenside),
-                    true
+                assert!(
+                    board.get_castling_state(Side::Black, CastlingDirection::Queenside)
                 );
-                assert_eq!(
-                    board.get_castling_state(Side::White, CastlingDirection::Queenside),
-                    true
+                assert!(
+                    board.get_castling_state(Side::White, CastlingDirection::Queenside)
                 );
             }
         }
@@ -330,21 +326,17 @@ mod test {
 
                 board.disable_castling(Side::White, CastlingDirection::Kingside);
 
-                assert_eq!(
-                    board.get_castling_state(Side::White, CastlingDirection::Kingside),
-                    false
+                assert!(
+                    !board.get_castling_state(Side::White, CastlingDirection::Kingside)
                 );
-                assert_eq!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Kingside),
-                    true
+                assert!(
+                    board.get_castling_state(Side::Black, CastlingDirection::Kingside)
                 );
-                assert_eq!(
-                    board.get_castling_state(Side::White, CastlingDirection::Queenside),
-                    true
+                assert!(
+                    board.get_castling_state(Side::White, CastlingDirection::Queenside)
                 );
-                assert_eq!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Queenside),
-                    true
+                assert!(
+                    board.get_castling_state(Side::Black, CastlingDirection::Queenside)
                 );
             }
         }

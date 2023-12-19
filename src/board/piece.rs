@@ -19,7 +19,7 @@ pub enum Side {
 }
 
 impl Side {
-    pub fn flip(self: Self) -> Self {
+    pub fn flip(self) -> Self {
         match self {
             Self::White => Self::Black,
             Self::Black => Self::White,
