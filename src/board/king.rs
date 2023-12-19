@@ -3,29 +3,50 @@ use crate::board::Board;
 use super::{Offset, Piece, PieceType::King};
 
 pub trait KingMovement {
-    fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
+    fn generate_king_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl KingMovement for Board {
-    fn generate_king_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str> {
-        let offsets = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-            .iter()
-            .map(|(x, y)| Offset { rank: *y, file: *x });
+    fn generate_king_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str> {
+        let offsets = [
+            (0, 1),
+            (1, 0),
+            (0, -1),
+            (-1, 0),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
+        ]
+        .iter()
+        .map(|(x, y)| Offset { rank: *y, file: *x });
 
-        let positions = self.get_positions_of_matching_pieces(Piece::new(self.current_move, King))?;
+        let positions = self.get_positions_of_matching_pieces(Piece::new(
+            self.current_move,
+            King,
+        ))?;
 
         let moves = positions
             .into_iter()
             .flat_map(|pos| {
                 offsets
                     .clone()
-                    .filter_map(move |off| self.add_offset_to_position(pos, off).ok())
+                    .filter_map(move |off| {
+                        self.add_offset_to_position(pos, off).ok()
+                    })
                     .map(move |new| (pos, new))
             })
             .filter_map(|(old, new)| {
-                let new_board = self.new_board_with_moved_piece(old, new, checked).ok()?;
+                let new_board =
+                    self.new_board_with_moved_piece(old, new, checked).ok()?;
                 Some(new_board)
             })
             .collect();
@@ -34,12 +55,9 @@ impl KingMovement for Board {
     }
 }
 
-
 #[cfg(test)]
 mod test {
-    use crate::board::{
-        Side, Square,
-    };
+    use crate::board::{Side, Square};
 
     use super::*;
 
@@ -61,14 +79,15 @@ mod test {
             for file in 0..2 {
                 if (rank, file) != (1, 1) {
                     assert!(moved_boards.iter().any(|x| matches!(
-                        x.get_piece_at_position(Square {
-                            rank,
-                            file
+                        x.get_piece_at_position(Square { rank, file }).unwrap(),
+                        Some(Piece {
+                            piece_type: King,
+                            ..
                         })
-                        .unwrap(),
-                        Some(Piece { piece_type: King, .. })
-                    ) && x.get_piece_at_position(Square { rank: 1, file: 1 })
-                            .unwrap().is_none()));
+                    ) && x
+                        .get_piece_at_position(Square { rank: 1, file: 1 })
+                        .unwrap()
+                        .is_none()));
                 }
             }
         }

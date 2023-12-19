@@ -1,7 +1,8 @@
 mod implementation;
 
 use self::implementation::{
-    get_king_starting_square, get_rook_starting_square, CastlingMovementImpl, CastlingStateImpl,
+    get_king_starting_square, get_rook_starting_square, CastlingMovementImpl,
+    CastlingStateImpl,
 };
 
 use super::{chess_move::ChessMove, Board};
@@ -29,7 +30,10 @@ pub trait CastlingMovement {
     /// If `checked` is true, only returns moves where the king wouldn't be
     /// in danger. If false, returns moves where king might be in danger as
     /// well
-    fn generate_castling_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
+    fn generate_castling_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 
@@ -38,7 +42,11 @@ pub trait CastlingMovement {
     /// Returns `Err` if castling isn't allowed.
     /// If `checked`, also returns `Err` if the king would be in check
     /// anywhere along the path.
-    fn castle(&mut self, dir: CastlingDirection, checked: bool) -> Result<(), &'static str>;
+    fn castle(
+        &mut self,
+        dir: CastlingDirection,
+        checked: bool,
+    ) -> Result<(), &'static str>;
 }
 
 impl CastlingState for Board {
@@ -55,15 +63,37 @@ impl CastlingState for Board {
                 // or something else was in it's position and the king was already not in the
                 // starting location
                 if from == get_king_starting_square(self.current_move) {
-                    self.disable_castling(self.current_move, CastlingDirection::Queenside);
-                    self.disable_castling(self.current_move, CastlingDirection::Kingside);
+                    self.disable_castling(
+                        self.current_move,
+                        CastlingDirection::Queenside,
+                    );
+                    self.disable_castling(
+                        self.current_move,
+                        CastlingDirection::Kingside,
+                    );
                 }
 
                 // If we move our rook, we should also lose castling privileges
-                if from == get_rook_starting_square(self.current_move, CastlingDirection::Queenside) {
-                    self.disable_castling(self.current_move, CastlingDirection::Queenside);
-                } else if from == get_rook_starting_square(self.current_move, CastlingDirection::Kingside) {
-                    self.disable_castling(self.current_move, CastlingDirection::Kingside);
+                if from
+                    == get_rook_starting_square(
+                        self.current_move,
+                        CastlingDirection::Queenside,
+                    )
+                {
+                    self.disable_castling(
+                        self.current_move,
+                        CastlingDirection::Queenside,
+                    );
+                } else if from
+                    == get_rook_starting_square(
+                        self.current_move,
+                        CastlingDirection::Kingside,
+                    )
+                {
+                    self.disable_castling(
+                        self.current_move,
+                        CastlingDirection::Kingside,
+                    );
                 }
 
                 // If we capture our opponent's rook, they shouldn't be allowed to castle in that
@@ -94,8 +124,14 @@ impl CastlingState for Board {
             // If we're currently castling, then we can never castle again,
             // so disable castling for this side
             ChessMove::Castling(_) => {
-                self.disable_castling(self.current_move, CastlingDirection::Queenside);
-                self.disable_castling(self.current_move, CastlingDirection::Kingside);
+                self.disable_castling(
+                    self.current_move,
+                    CastlingDirection::Queenside,
+                );
+                self.disable_castling(
+                    self.current_move,
+                    CastlingDirection::Kingside,
+                );
             }
         }
     }
@@ -105,7 +141,10 @@ impl CastlingMovement for Board {
     /// Assumes that the game is being played on a standard
     /// board with default configuration, so for now doesn't
     /// support stuff like 960 or odd sized boards
-    fn generate_castling_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str> {
+    fn generate_castling_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str> {
         let any_castling_state_enabled = self.is_any_castling_state_enabled();
         if !any_castling_state_enabled {
             return Ok(vec![]);
@@ -117,7 +156,8 @@ impl CastlingMovement for Board {
 
         let mut moves = vec![];
 
-        let directions = [CastlingDirection::Queenside, CastlingDirection::Kingside];
+        let directions =
+            [CastlingDirection::Queenside, CastlingDirection::Kingside];
         for dir in directions {
             if !self.can_castle(dir, checked)? {
                 continue;
@@ -132,7 +172,11 @@ impl CastlingMovement for Board {
         Ok(moves)
     }
 
-    fn castle(&mut self, dir: CastlingDirection, checked: bool) -> Result<(), &'static str> {
+    fn castle(
+        &mut self,
+        dir: CastlingDirection,
+        checked: bool,
+    ) -> Result<(), &'static str> {
         if !self.can_castle(dir, checked)? {
             return Err("Can't castle");
         }
@@ -163,7 +207,9 @@ mod test {
                 // Queen's gambit declined
                 let moves = ["d2d4", "d7d5", "c2c4", "e7e6"];
                 for chess_move in moves {
-                    board.make_move(chess_move.try_into().unwrap(), true).unwrap();
+                    board
+                        .make_move(chess_move.try_into().unwrap(), true)
+                        .unwrap();
                 }
 
                 assert!(board.castling_availability.iter().all(|&a| a));
@@ -176,11 +222,19 @@ mod test {
                 // Bongcloud
                 let moves = ["e2e4", "e7e5", "e1e2"];
                 for chess_move in moves {
-                    board.make_move(chess_move.try_into().unwrap(), true).unwrap();
+                    board
+                        .make_move(chess_move.try_into().unwrap(), true)
+                        .unwrap();
                 }
 
-                assert!(!board.get_castling_state(Side::White, CastlingDirection::Queenside));
-                assert!(!board.get_castling_state(Side::White, CastlingDirection::Kingside));
+                assert!(!board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Queenside
+                ));
+                assert!(!board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Kingside
+                ));
             }
 
             #[test]
@@ -190,11 +244,19 @@ mod test {
                 // Bongcloud
                 let moves = ["h2h4", "h7h5", "h1h3"];
                 for chess_move in moves {
-                    board.make_move(chess_move.try_into().unwrap(), true).unwrap();
+                    board
+                        .make_move(chess_move.try_into().unwrap(), true)
+                        .unwrap();
                 }
 
-                assert!(board.get_castling_state(Side::White, CastlingDirection::Queenside));
-                assert!(!board.get_castling_state(Side::White, CastlingDirection::Kingside));
+                assert!(board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Queenside
+                ));
+                assert!(!board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Kingside
+                ));
             }
         }
     }

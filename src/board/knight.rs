@@ -1,23 +1,31 @@
 use crate::board::Board;
 
-use super::{Offset, PieceType::*, Side::*, Piece};
+use super::{Offset, Piece, PieceType::*, Side::*};
 
 pub trait KnightMovement {
-    fn generate_knight_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
+    fn generate_knight_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl KnightMovement for Board {
-    fn generate_knight_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
-        let jumps = [(-1, 2),
+    fn generate_knight_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Board>, &'static str> {
+        let jumps = [
+            (-1, 2),
             (1, 2),
             (-2, 1),
             (2, 1),
             (-2, -1),
             (2, -1),
             (-1, -2),
-            (1, -2)];
+            (1, -2),
+        ];
 
         let knight_positions =
             self.get_positions_of_matching_pieces(Piece::new(White, Knight))?;
@@ -31,17 +39,22 @@ impl KnightMovement for Board {
                     rank: *rank,
                 })
                 // Get target square and check for out-of-bounds moves
-                .filter_map(|dir| self.add_offset_to_position(old_pos, dir).ok())
+                .filter_map(|dir| {
+                    self.add_offset_to_position(old_pos, dir).ok()
+                })
                 // Check target square: can't take own pieces
-                .filter(
-                    |new_pos| match self.get_piece_at_position(*new_pos).unwrap() {
+                .filter(|new_pos| {
+                    match self.get_piece_at_position(*new_pos).unwrap() {
                         None => true,
                         Some(Piece { side: Black, .. }) => true,
                         Some(Piece { side: White, .. }) => false,
-                    },
-                )
+                    }
+                })
                 // Should be able to move there without error
-                .filter_map(|new_pos| self.new_board_with_moved_piece(old_pos, new_pos, checked).ok());
+                .filter_map(|new_pos| {
+                    self.new_board_with_moved_piece(old_pos, new_pos, checked)
+                        .ok()
+                });
 
             possible_boards.extend(new_boards);
         }

@@ -11,7 +11,11 @@ use super::CastlingDirection;
 pub trait CastlingStateImpl {
     /// Returns whether or not the pieces of the given `side` that
     /// would castle in the given `dir` are in their starting positions
-    fn get_castling_state(&self, side: Side, direction: CastlingDirection) -> bool;
+    fn get_castling_state(
+        &self,
+        side: Side,
+        direction: CastlingDirection,
+    ) -> bool;
 
     /// Updates the castling state to disallow castling for a
     /// given `side` in the given `direction`
@@ -28,7 +32,10 @@ pub trait CastlingMovementImpl {
     /// Checks if the rook of the currently moving side that would move if
     /// castling in the `dir` is in the starting
     /// position or not
-    fn is_rook_in_starting_position(&self, dir: CastlingDirection) -> Result<bool, &'static str>;
+    fn is_rook_in_starting_position(
+        &self,
+        dir: CastlingDirection,
+    ) -> Result<bool, &'static str>;
 
     /// Checks if castling is allowed in any direction for the current side Only
     /// checks the castling state, not whether or not the move can be made now
@@ -42,7 +49,10 @@ pub trait CastlingMovementImpl {
 
     /// Returns a list of boards of the current king moving to castle in the
     /// given direction
-    fn moving_king_boards(&self, dir: CastlingDirection) -> Result<Vec<Self>, &'static str>
+    fn moving_king_boards(
+        &self,
+        dir: CastlingDirection,
+    ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 
@@ -53,11 +63,19 @@ pub trait CastlingMovementImpl {
     /// Performs a full check about whether or not castling is allowed,
     /// including checking if pieces have moved before, if there's anything
     /// blocking, if the king would be in threat, etc.
-    fn can_castle(&self, dir: CastlingDirection, checked: bool) -> Result<bool, &'static str>;
+    fn can_castle(
+        &self,
+        dir: CastlingDirection,
+        checked: bool,
+    ) -> Result<bool, &'static str>;
 }
 
 impl CastlingStateImpl for Board {
-    fn get_castling_state(&self, side: Side, direction: CastlingDirection) -> bool {
+    fn get_castling_state(
+        &self,
+        side: Side,
+        direction: CastlingDirection,
+    ) -> bool {
         let index = calculate_index(side, direction);
         self.castling_availability[index]
     }
@@ -69,66 +87,85 @@ impl CastlingStateImpl for Board {
 
 impl CastlingMovementImpl for Board {
     fn is_king_in_starting_position(&self) -> Result<bool, &'static str> {
-        let king_piece = self.get_piece_at_position(get_king_starting_square(self.current_move))?;
+        let king_piece = self.get_piece_at_position(
+            get_king_starting_square(self.current_move),
+        )?;
 
         Ok(king_piece.is_some_and(|p| p.piece_type == PieceType::King))
     }
 
-    fn is_rook_in_starting_position(&self, dir: CastlingDirection) -> Result<bool, &'static str> {
-        let rook_piece =
-            self.get_piece_at_position(get_rook_starting_square(self.current_move, dir))?;
+    fn is_rook_in_starting_position(
+        &self,
+        dir: CastlingDirection,
+    ) -> Result<bool, &'static str> {
+        let rook_piece = self.get_piece_at_position(
+            get_rook_starting_square(self.current_move, dir),
+        )?;
 
         Ok(rook_piece.is_some_and(|p| p.piece_type == PieceType::Rook))
     }
 
     fn is_any_castling_state_enabled(&self) -> bool {
         self.get_castling_state(self.current_move, CastlingDirection::Queenside)
-            || self.get_castling_state(self.current_move, CastlingDirection::Kingside)
+            || self.get_castling_state(
+                self.current_move,
+                CastlingDirection::Kingside,
+            )
     }
 
     fn are_pieces_blocking(&self, dir: CastlingDirection) -> bool {
-        let king_starting_position = get_king_starting_square(self.current_move);
+        let king_starting_position =
+            get_king_starting_square(self.current_move);
 
         let offset = match dir {
             CastlingDirection::Kingside => Offset { file: 1, rank: 0 },
             CastlingDirection::Queenside => Offset { file: -1, rank: 0 },
         };
 
-        let reachable_position = self.check_ray_for_pieces(king_starting_position, offset, false);
+        let reachable_position =
+            self.check_ray_for_pieces(king_starting_position, offset, false);
         match dir {
             CastlingDirection::Queenside => reachable_position.file > 1,
             CastlingDirection::Kingside => reachable_position.file < 6,
         }
     }
 
-    fn moving_king_boards(&self, dir: CastlingDirection) -> Result<Vec<Self>, &'static str> {
-        let king_starting_position = get_king_starting_square(self.current_move);
+    fn moving_king_boards(
+        &self,
+        dir: CastlingDirection,
+    ) -> Result<Vec<Self>, &'static str> {
+        let king_starting_position =
+            get_king_starting_square(self.current_move);
 
         match dir {
             CastlingDirection::Queenside => (1..4).rev().collect::<Vec<_>>(),
             CastlingDirection::Kingside => (5..7).collect(),
-        }.into_iter().map(|file| {
-                let new_pos = Square {
-                    rank: get_starting_rank(self.current_move),
-                    file,
-                };
+        }
+        .into_iter()
+        .map(|file| {
+            let new_pos = Square {
+                rank: get_starting_rank(self.current_move),
+                file,
+            };
 
-                let mut new_board = self.clone();
+            let mut new_board = self.clone();
 
-                new_board.set_piece_at_position(
-                    Some(Piece::new(self.current_move, PieceType::King)),
-                    new_pos,
-                )?;
-                new_board.set_piece_at_position(None, king_starting_position)?;
+            new_board.set_piece_at_position(
+                Some(Piece::new(self.current_move, PieceType::King)),
+                new_pos,
+            )?;
+            new_board.set_piece_at_position(None, king_starting_position)?;
 
-                Ok(new_board)
-            })
-            .collect()
+            Ok(new_board)
+        })
+        .collect()
     }
 
     fn unchecked_castle(&mut self, dir: CastlingDirection) {
-        let king_starting_position = get_king_starting_square(self.current_move);
-        let rook_starting_position = get_rook_starting_square(self.current_move, dir);
+        let king_starting_position =
+            get_king_starting_square(self.current_move);
+        let rook_starting_position =
+            get_rook_starting_square(self.current_move, dir);
 
         let rook_new_position = get_rook_end_position(self.current_move, dir);
         let king_new_position = get_king_end_position(self.current_move, dir);
@@ -149,7 +186,11 @@ impl CastlingMovementImpl for Board {
             .unwrap();
     }
 
-    fn can_castle(&self, dir: CastlingDirection, checked: bool) -> Result<bool, &'static str> {
+    fn can_castle(
+        &self,
+        dir: CastlingDirection,
+        checked: bool,
+    ) -> Result<bool, &'static str> {
         if !self.get_castling_state(self.current_move, dir) {
             return Ok(false);
         }
@@ -158,7 +199,9 @@ impl CastlingMovementImpl for Board {
             return Ok(false);
         }
 
-        if !self.is_king_in_starting_position()? || !self.is_rook_in_starting_position(dir)? {
+        if !self.is_king_in_starting_position()?
+            || !self.is_rook_in_starting_position(dir)?
+        {
             return Ok(false);
         }
 
@@ -288,7 +331,8 @@ mod test {
                 let board = Board::default();
 
                 let sides = [Side::White, Side::Black];
-                let directions = [CastlingDirection::Queenside, CastlingDirection::Kingside];
+                let directions =
+                    [CastlingDirection::Queenside, CastlingDirection::Kingside];
 
                 for side in sides {
                     for dir in directions {
@@ -302,18 +346,22 @@ mod test {
                 let mut board = Board::default();
                 board.castling_availability = [true, false, true, false];
 
-                assert!(
-                    !board.get_castling_state(Side::Black, CastlingDirection::Kingside)
-                );
-                assert!(
-                    !board.get_castling_state(Side::White, CastlingDirection::Kingside)
-                );
-                assert!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Queenside)
-                );
-                assert!(
-                    board.get_castling_state(Side::White, CastlingDirection::Queenside)
-                );
+                assert!(!board.get_castling_state(
+                    Side::Black,
+                    CastlingDirection::Kingside
+                ));
+                assert!(!board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Kingside
+                ));
+                assert!(board.get_castling_state(
+                    Side::Black,
+                    CastlingDirection::Queenside
+                ));
+                assert!(board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Queenside
+                ));
             }
         }
 
@@ -324,20 +372,25 @@ mod test {
             fn works() {
                 let mut board = Board::default();
 
-                board.disable_castling(Side::White, CastlingDirection::Kingside);
+                board
+                    .disable_castling(Side::White, CastlingDirection::Kingside);
 
-                assert!(
-                    !board.get_castling_state(Side::White, CastlingDirection::Kingside)
-                );
-                assert!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Kingside)
-                );
-                assert!(
-                    board.get_castling_state(Side::White, CastlingDirection::Queenside)
-                );
-                assert!(
-                    board.get_castling_state(Side::Black, CastlingDirection::Queenside)
-                );
+                assert!(!board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Kingside
+                ));
+                assert!(board.get_castling_state(
+                    Side::Black,
+                    CastlingDirection::Kingside
+                ));
+                assert!(board.get_castling_state(
+                    Side::White,
+                    CastlingDirection::Queenside
+                ));
+                assert!(board.get_castling_state(
+                    Side::Black,
+                    CastlingDirection::Queenside
+                ));
             }
         }
     }
@@ -386,8 +439,12 @@ mod test {
             fn works_with_default_board() {
                 let board = Board::default();
 
-                assert!(board.is_rook_in_starting_position(CastlingDirection::Kingside).unwrap());
-                assert!(board.is_rook_in_starting_position(CastlingDirection::Queenside).unwrap());
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Kingside)
+                    .unwrap());
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Queenside)
+                    .unwrap());
             }
 
             #[test]
@@ -395,95 +452,87 @@ mod test {
                 let pieces = vec![None; 64];
                 let board = Board::with_pieces(pieces, 8);
 
-                assert!(
-                    !board.is_rook_in_starting_position(
-                        CastlingDirection::Queenside)
-                    .unwrap()
-                );
+                assert!(!board
+                    .is_rook_in_starting_position(CastlingDirection::Queenside)
+                    .unwrap());
 
-                assert!(
-                    !board.is_rook_in_starting_position(
-                        CastlingDirection::Kingside)
-                    .unwrap()
-                );
+                assert!(!board
+                    .is_rook_in_starting_position(CastlingDirection::Kingside)
+                    .unwrap());
             }
 
             #[test]
             fn works_with_one_rook_removed_current_side() {
                 let mut board = Board::default();
 
-                board.set_piece_at_position(None, Square { file: 0, rank: 0 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 0, rank: 0 })
+                    .unwrap();
 
-                assert!(
-                    !board.is_rook_in_starting_position(
-                        CastlingDirection::Queenside)
-                    .unwrap()
-                );
+                assert!(!board
+                    .is_rook_in_starting_position(CastlingDirection::Queenside)
+                    .unwrap());
 
-                assert!(
-                    board.is_rook_in_starting_position(
-                        CastlingDirection::Kingside)
-                    .unwrap()
-                );
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Kingside)
+                    .unwrap());
             }
 
             #[test]
             fn works_with_both_rooks_removed_current_side() {
                 let mut board = Board::default();
 
-                board.set_piece_at_position(None, Square { file: 0, rank: 0 }).unwrap();
-                board.set_piece_at_position(None, Square { file: 7, rank: 0 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 0, rank: 0 })
+                    .unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 7, rank: 0 })
+                    .unwrap();
 
-                assert!(
-                    !board.is_rook_in_starting_position(
-                        CastlingDirection::Queenside)
-                    .unwrap()
-                );
+                assert!(!board
+                    .is_rook_in_starting_position(CastlingDirection::Queenside)
+                    .unwrap());
 
-                assert!(
-                    !board.is_rook_in_starting_position(
-                        CastlingDirection::Kingside)
-                    .unwrap()
-                );
+                assert!(!board
+                    .is_rook_in_starting_position(CastlingDirection::Kingside)
+                    .unwrap());
             }
 
             #[test]
             fn works_with_one_rook_removed_other_side() {
                 let mut board = Board::default();
 
-                board.set_piece_at_position(None, Square { file: 0, rank: 7 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 0, rank: 7 })
+                    .unwrap();
 
-                assert!(
-                    board.is_rook_in_starting_position(
-                        CastlingDirection::Queenside)
-                    .unwrap()
-                );
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Queenside)
+                    .unwrap());
 
-                assert!(
-                    board.is_rook_in_starting_position(
-                        CastlingDirection::Kingside)
-                    .unwrap()
-                );
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Kingside)
+                    .unwrap());
             }
 
             #[test]
             fn works_with_both_rooks_removed_other_side() {
                 let mut board = Board::default();
 
-                board.set_piece_at_position(None, Square { file: 0, rank: 7 }).unwrap();
-                board.set_piece_at_position(None, Square { file: 7, rank: 7 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 0, rank: 7 })
+                    .unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 7, rank: 7 })
+                    .unwrap();
 
-                assert!(
-                    board.is_rook_in_starting_position(
-                        CastlingDirection::Queenside)
-                    .unwrap()
-                );
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Queenside)
+                    .unwrap());
 
-                assert!(
-                    board.is_rook_in_starting_position(
-                        CastlingDirection::Kingside)
-                    .unwrap()
-                );
+                assert!(board
+                    .is_rook_in_starting_position(CastlingDirection::Kingside)
+                    .unwrap());
             }
         }
 
@@ -528,7 +577,9 @@ mod test {
                  ........\n\
                  ........\n\
                  r...k..r\
-            ").unwrap();
+            ",
+            )
+            .unwrap();
 
             board.castling_availability = [false, false, true, true];
 
@@ -543,11 +594,19 @@ mod test {
                 let mut board = Board::default();
 
                 // Remove the queen, queenside bishop and knight
-                board.set_piece_at_position(None, Square { file: 1, rank: 0 }).unwrap();
-                board.set_piece_at_position(None, Square { file: 2, rank: 0 }).unwrap();
-                board.set_piece_at_position(None, Square { file: 3, rank: 0 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 1, rank: 0 })
+                    .unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 2, rank: 0 })
+                    .unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 3, rank: 0 })
+                    .unwrap();
 
-                assert!(!board.are_pieces_blocking(CastlingDirection::Queenside));
+                assert!(
+                    !board.are_pieces_blocking(CastlingDirection::Queenside)
+                );
             }
 
             #[test]
@@ -555,8 +614,12 @@ mod test {
                 let mut board = Board::default();
 
                 // Remove the kingside bishop and the knight
-                board.set_piece_at_position(None, Square { file: 5, rank: 0 }).unwrap();
-                board.set_piece_at_position(None, Square { file: 6, rank: 0 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 5, rank: 0 })
+                    .unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 6, rank: 0 })
+                    .unwrap();
 
                 assert!(!board.are_pieces_blocking(CastlingDirection::Kingside));
             }
@@ -566,7 +629,9 @@ mod test {
                 let mut board = Board::default();
 
                 // Remove the kingside bishop, but not the knight
-                board.set_piece_at_position(None, Square { file: 5, rank: 0 }).unwrap();
+                board
+                    .set_piece_at_position(None, Square { file: 5, rank: 0 })
+                    .unwrap();
 
                 assert!(board.are_pieces_blocking(CastlingDirection::Kingside));
             }
@@ -575,16 +640,16 @@ mod test {
         mod moving_king_boards {
             use super::*;
 
-            fn assert_indices_and_files_for_board(indices_and_files: &[(usize, usize)], boards: &[Board]) {
+            fn assert_indices_and_files_for_board(
+                indices_and_files: &[(usize, usize)],
+                boards: &[Board],
+            ) {
                 for &(index, file) in indices_and_files {
                     let board = boards.get(index).unwrap();
-                    assert!(
-                        board.get_piece_at_position(
-                            Square { file, rank: 0 }
-                        ).is_ok_and(|o| o.is_some_and(
-                            |k| k.piece_type == PieceType::King
-                        ))
-                    );
+                    assert!(board
+                        .get_piece_at_position(Square { file, rank: 0 })
+                        .is_ok_and(|o| o
+                            .is_some_and(|k| k.piece_type == PieceType::King)));
                 }
             }
 
@@ -592,26 +657,30 @@ mod test {
             fn works_kingside() {
                 let board = get_test_board();
 
-                let moving_boards = board.moving_king_boards(CastlingDirection::Kingside).unwrap();
+                let moving_boards = board
+                    .moving_king_boards(CastlingDirection::Kingside)
+                    .unwrap();
                 assert_eq!(moving_boards.len(), 2);
 
                 let indices_and_files = [(0, 5), (1, 6)];
                 assert_indices_and_files_for_board(
                     &indices_and_files,
-                    &moving_boards
+                    &moving_boards,
                 );
             }
             #[test]
             fn works_queenside() {
                 let board = get_test_board();
 
-                let moving_boards = board.moving_king_boards(CastlingDirection::Queenside).unwrap();
+                let moving_boards = board
+                    .moving_king_boards(CastlingDirection::Queenside)
+                    .unwrap();
                 assert_eq!(moving_boards.len(), 3);
 
                 let indices_and_files = [(0, 3), (1, 2), (2, 1)];
                 assert_indices_and_files_for_board(
                     &indices_and_files,
-                    &moving_boards
+                    &moving_boards,
                 );
             }
         }
@@ -624,8 +693,20 @@ mod test {
                 let mut board = get_test_board();
 
                 board.unchecked_castle(CastlingDirection::Queenside);
-                let king = board.get_piece_at_position(get_king_end_position(Side::White, CastlingDirection::Queenside)).unwrap().unwrap();
-                let rook = board.get_piece_at_position(get_rook_end_position(Side::White, CastlingDirection::Queenside)).unwrap().unwrap();
+                let king = board
+                    .get_piece_at_position(get_king_end_position(
+                        Side::White,
+                        CastlingDirection::Queenside,
+                    ))
+                    .unwrap()
+                    .unwrap();
+                let rook = board
+                    .get_piece_at_position(get_rook_end_position(
+                        Side::White,
+                        CastlingDirection::Queenside,
+                    ))
+                    .unwrap()
+                    .unwrap();
 
                 assert_eq!(king.piece_type, PieceType::King);
                 assert_eq!(rook.piece_type, PieceType::Rook);
@@ -636,8 +717,20 @@ mod test {
                 let mut board = get_test_board();
 
                 board.unchecked_castle(CastlingDirection::Kingside);
-                let king = board.get_piece_at_position(get_king_end_position(Side::White, CastlingDirection::Kingside)).unwrap().unwrap();
-                let rook = board.get_piece_at_position(get_rook_end_position(Side::White, CastlingDirection::Kingside)).unwrap().unwrap();
+                let king = board
+                    .get_piece_at_position(get_king_end_position(
+                        Side::White,
+                        CastlingDirection::Kingside,
+                    ))
+                    .unwrap()
+                    .unwrap();
+                let rook = board
+                    .get_piece_at_position(get_rook_end_position(
+                        Side::White,
+                        CastlingDirection::Kingside,
+                    ))
+                    .unwrap()
+                    .unwrap();
 
                 assert_eq!(king.piece_type, PieceType::King);
                 assert_eq!(rook.piece_type, PieceType::Rook);
@@ -659,12 +752,18 @@ mod test {
                     calculate_index(Side::Black, CastlingDirection::Queenside),
                     0
                 );
-                assert_eq!(calculate_index(Side::Black, CastlingDirection::Kingside), 1);
+                assert_eq!(
+                    calculate_index(Side::Black, CastlingDirection::Kingside),
+                    1
+                );
                 assert_eq!(
                     calculate_index(Side::White, CastlingDirection::Queenside),
                     2
                 );
-                assert_eq!(calculate_index(Side::White, CastlingDirection::Kingside), 3);
+                assert_eq!(
+                    calculate_index(Side::White, CastlingDirection::Kingside),
+                    3
+                );
             }
         }
     }

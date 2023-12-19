@@ -1,4 +1,4 @@
-use super::{UncheckedSquare, Offset};
+use super::{Offset, UncheckedSquare};
 
 /// Helper enum to indicate whether a given error is referencing a row or column on the board
 #[derive(Debug)]
@@ -14,14 +14,18 @@ pub enum InvalidOffsetError {
     /// Indicates that the resulting offset would be off the left or bottom side of the board
     LessThanZero(Orientation, Offset),
     /// Indicates that the given square would be off the top or right side of the board
-    InvalidSquare(InvalidSquareError)
+    InvalidSquare(InvalidSquareError),
 }
 
-impl From<InvalidOffsetError> for &'static str  {
+impl From<InvalidOffsetError> for &'static str {
     fn from(item: InvalidOffsetError) -> &'static str {
         match item {
-            InvalidOffsetError::LessThanZero(Orientation::File, _) => "Invalid offset, resulting file is less than zero",
-            InvalidOffsetError::LessThanZero(_, _) => "Invalid offset, resulting rank is less than zero",
+            InvalidOffsetError::LessThanZero(Orientation::File, _) => {
+                "Invalid offset, resulting file is less than zero"
+            }
+            InvalidOffsetError::LessThanZero(_, _) => {
+                "Invalid offset, resulting rank is less than zero"
+            }
             InvalidOffsetError::InvalidSquare(error) => error.into(),
         }
     }

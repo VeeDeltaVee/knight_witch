@@ -1,5 +1,5 @@
-use super::{Board, Orientation};
 use super::errors::InvalidSquareError;
+use super::{Board, Orientation};
 
 /// Represents a square on the board
 ///
@@ -23,9 +23,12 @@ pub struct UncheckedSquare {
 
 impl UncheckedSquare {
     /// Verify that the square is on the given board
-    pub fn check_with_board(self, board: &Board) -> Result<Square, InvalidSquareError> {
+    pub fn check_with_board(
+        self,
+        board: &Board,
+    ) -> Result<Square, InvalidSquareError> {
         if self.file >= board.width {
-            if self.rank * board.width + self.file >= board.squares.len(){
+            if self.rank * board.width + self.file >= board.squares.len() {
                 Err(InvalidSquareError::OutOfBounds(Orientation::Both, self))
             } else {
                 Err(InvalidSquareError::OutOfBounds(Orientation::File, self))
@@ -33,13 +36,19 @@ impl UncheckedSquare {
         } else if self.rank * board.width + self.file >= board.squares.len() {
             Err(InvalidSquareError::OutOfBounds(Orientation::Rank, self))
         } else {
-            Ok(Square { rank: self.rank, file: self.file })
+            Ok(Square {
+                rank: self.rank,
+                file: self.file,
+            })
         }
     }
 }
 
 impl From<Square> for UncheckedSquare {
     fn from(item: Square) -> UncheckedSquare {
-        UncheckedSquare { rank: item.rank, file: item.file }
+        UncheckedSquare {
+            rank: item.rank,
+            file: item.file,
+        }
     }
 }

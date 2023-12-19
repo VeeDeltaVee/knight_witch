@@ -1,6 +1,6 @@
-use std::{convert::TryFrom};
+use std::convert::TryFrom;
 
-use super::{Square, castling::CastlingDirection};
+use super::{castling::CastlingDirection, Square};
 
 #[derive(Debug, Clone)]
 pub enum ChessMove {
@@ -20,13 +20,21 @@ impl TryFrom<&str> for ChessMove {
 
         let mut chars = value.chars();
         let from = Square {
-            file: file_from_char(chars.next().ok_or("Invalid value, too short")?)?,
-            rank: rank_from_char(chars.next().ok_or("Invalid value, too short")?)?
+            file: file_from_char(
+                chars.next().ok_or("Invalid value, too short")?,
+            )?,
+            rank: rank_from_char(
+                chars.next().ok_or("Invalid value, too short")?,
+            )?,
         };
 
         let to = Square {
-            file: file_from_char(chars.next().ok_or("Invalid value, too short")?)?,
-            rank: rank_from_char(chars.next().ok_or("Invalid value, too short")?)?
+            file: file_from_char(
+                chars.next().ok_or("Invalid value, too short")?,
+            )?,
+            rank: rank_from_char(
+                chars.next().ok_or("Invalid value, too short")?,
+            )?,
         };
 
         Ok(ChessMove::SimpleMove(from, to))

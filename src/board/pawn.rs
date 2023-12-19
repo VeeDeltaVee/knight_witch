@@ -1,15 +1,21 @@
 use crate::board::Board;
 
-use super::{Offset, PieceType::*, Side::*, Square, UncheckedSquare, Piece};
+use super::{Offset, Piece, PieceType::*, Side::*, Square, UncheckedSquare};
 
 pub trait PawnMovement {
-    fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
+    fn generate_pawn_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl PawnMovement for Board {
-    fn generate_pawn_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
+    fn generate_pawn_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Board>, &'static str> {
         let mut possible_moves = vec![];
         let pawn_positions =
             self.get_positions_of_matching_pieces(Piece::new(White, Pawn))?;
@@ -35,7 +41,9 @@ impl PawnMovement for Board {
                     pos,
                     UncheckedSquare {
                         file: pos.file,
-                        rank: pos.rank.checked_add_signed(single_move_offset)?,
+                        rank: pos
+                            .rank
+                            .checked_add_signed(single_move_offset)?,
                     },
                 ))
             })
@@ -45,10 +53,13 @@ impl PawnMovement for Board {
                     .map(|checked| (pos, checked))
             })
             // The final destination should be free
-            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
+            .filter(|(_, new_pos)| {
+                matches!(self.get_piece_at_position(*new_pos), Ok(None))
+            })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos, checked).ok()
+                self.new_board_with_moved_piece(*old_pos, new_pos, checked)
+                    .ok()
             });
         possible_moves.extend(single_square_pawn_move_boards);
 
@@ -60,12 +71,16 @@ impl PawnMovement for Board {
                     pos,
                     Square {
                         file: pos.file,
-                        rank: pos.rank.checked_add_signed(2 * single_move_offset)?,
+                        rank: pos
+                            .rank
+                            .checked_add_signed(2 * single_move_offset)?,
                     },
                 ))
             })
             // Should start from second rank
-            .filter(|(old_pos, _)| old_pos.rank == starting_rank_for_current_side)
+            .filter(|(old_pos, _)| {
+                old_pos.rank == starting_rank_for_current_side
+            })
             // Should have the intervening space be free
             .filter(|(old_pos, new_pos)| {
                 let ray_rank = self
@@ -86,7 +101,9 @@ impl PawnMovement for Board {
                 }
             })
             // The final destination should be free
-            .filter(|(_, new_pos)| matches!(self.get_piece_at_position(*new_pos), Ok(None)))
+            .filter(|(_, new_pos)| {
+                matches!(self.get_piece_at_position(*new_pos), Ok(None))
+            })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
                 self.new_board_with_moved_piece(*old_pos, new_pos, checked)
@@ -94,7 +111,9 @@ impl PawnMovement for Board {
                     // Should set the en_passant_target
                     .and_then(|mut board| {
                         board.en_passant_target = Some(Square {
-                            rank: new_pos.rank.checked_add_signed(-single_move_offset)?,
+                            rank: new_pos
+                                .rank
+                                .checked_add_signed(-single_move_offset)?,
                             file: new_pos.file,
                         });
                         Some(board)
@@ -104,19 +123,20 @@ impl PawnMovement for Board {
         possible_moves.extend(double_square_pawn_move_boards);
 
         // Append pawn captures
-        let pawn_capture_left_moves =
-            pawn_positions
-                .iter()
-                .filter(|pos| pos.file > 0)
-                .filter_map(|pos| {
-                    Some((
-                        pos,
-                        UncheckedSquare {
-                            file: pos.file - 1,
-                            rank: pos.rank.checked_add_signed(single_move_offset)?,
-                        },
-                    ))
-                });
+        let pawn_capture_left_moves = pawn_positions
+            .iter()
+            .filter(|pos| pos.file > 0)
+            .filter_map(|pos| {
+                Some((
+                    pos,
+                    UncheckedSquare {
+                        file: pos.file - 1,
+                        rank: pos
+                            .rank
+                            .checked_add_signed(single_move_offset)?,
+                    },
+                ))
+            });
         let pawn_capture_right_moves = pawn_positions
             .iter()
             .filter(|pos| pos.file < self.width - 1)
@@ -125,7 +145,9 @@ impl PawnMovement for Board {
                     pos,
                     UncheckedSquare {
                         file: pos.file + 1,
-                        rank: pos.rank.checked_add_signed(single_move_offset)?,
+                        rank: pos
+                            .rank
+                            .checked_add_signed(single_move_offset)?,
                     },
                 ))
             });
@@ -138,12 +160,14 @@ impl PawnMovement for Board {
                 Some((pos, self.check_square(new_pos).ok()?))
             })
             .filter(|(_, new_pos)| {
-                self.get_piece_at_position(*new_pos)
-                    .is_ok_and(|piece| piece.is_some_and(|p| p.side == opposite_side))
+                self.get_piece_at_position(*new_pos).is_ok_and(|piece| {
+                    piece.is_some_and(|p| p.side == opposite_side)
+                })
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos, checked).ok()
+                self.new_board_with_moved_piece(*old_pos, new_pos, checked)
+                    .ok()
             });
         possible_moves.extend(pawn_capture_boards);
 
@@ -164,7 +188,9 @@ impl PawnMovement for Board {
                             .set_piece_at_position(
                                 None,
                                 Square {
-                                    rank: new_pos.rank.checked_add_signed(-single_move_offset)?,
+                                    rank: new_pos.rank.checked_add_signed(
+                                        -single_move_offset,
+                                    )?,
                                     file: new_pos.file,
                                 },
                             )
@@ -182,7 +208,9 @@ impl PawnMovement for Board {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::board::{test_utils::check_for_moves, chess_move::ChessMove::SimpleMove};
+    use crate::board::{
+        chess_move::ChessMove::SimpleMove, test_utils::check_for_moves,
+    };
 
     // Returns a board with the setup
     // .....
@@ -311,7 +339,6 @@ mod test {
         );
     }
 
-
     #[test]
     fn captures_opponents_pieces() {
         let board = get_test_board_for_pawn_captures();
@@ -323,7 +350,10 @@ mod test {
         assert!(moved_boards.into_iter().any(|x| matches!(
             x.get_piece_at_position(Square { rank: 2, file: 2 })
                 .unwrap(),
-            Some(Piece { piece_type: Pawn, .. })
+            Some(Piece {
+                piece_type: Pawn,
+                ..
+            })
         )));
     }
 
@@ -337,7 +367,10 @@ mod test {
         assert!(moved_boards.into_iter().all(|x| !matches!(
             x.get_piece_at_position(Square { rank: 2, file: 0 })
                 .unwrap(),
-            Some(Piece { piece_type: Pawn, .. })
+            Some(Piece {
+                piece_type: Pawn,
+                ..
+            })
         )));
     }
 
@@ -352,9 +385,14 @@ mod test {
         assert!(moved_boards.iter().any(|x| matches!(
             x.get_piece_at_position(Square { rank: 2, file: 3 })
                 .unwrap(),
-            Some(Piece { piece_type: Pawn, .. })
-        ) && x.get_piece_at_position(Square { rank: 1, file: 3 })
-                .unwrap().is_none()));
+            Some(Piece {
+                piece_type: Pawn,
+                ..
+            })
+        ) && x
+            .get_piece_at_position(Square { rank: 1, file: 3 })
+            .unwrap()
+            .is_none()));
     }
 
     #[test]
@@ -365,16 +403,22 @@ mod test {
              ....\n\
              ..P.\n\
              ....\n\
-             ....\n"
-        ).unwrap();
+             ....\n",
+        )
+        .unwrap();
 
         board.current_move = Black;
 
         // Push pawn to create en_passant_target
-        board.make_move(
-            SimpleMove(Square {rank: 4, file: 1}, Square {rank: 2, file: 1}),
-            true
-        ).unwrap();
+        board
+            .make_move(
+                SimpleMove(
+                    Square { rank: 4, file: 1 },
+                    Square { rank: 2, file: 1 },
+                ),
+                true,
+            )
+            .unwrap();
 
         assert_eq!(board.en_passant_target, Some(Square { file: 1, rank: 3 }));
     }

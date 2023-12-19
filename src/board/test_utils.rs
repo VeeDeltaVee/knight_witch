@@ -14,7 +14,9 @@ pub fn check_for_moves(
             boards
                 .clone()
                 .into_iter()
-                .any(|x| x.get_piece_at_position(square).unwrap() == Some(piece)),
+                .any(
+                    |x| x.get_piece_at_position(square).unwrap() == Some(piece)
+                ),
             "Didn't find {:?} move at rank {}, file {}",
             piece,
             square.rank,
@@ -27,7 +29,9 @@ pub fn check_for_moves(
             !boards
                 .clone()
                 .into_iter()
-                .any(|x| x.get_piece_at_position(square).unwrap() == Some(piece)),
+                .any(
+                    |x| x.get_piece_at_position(square).unwrap() == Some(piece)
+                ),
             "Found unexpected {:?} move at rank {}, file {}",
             piece,
             square.rank,
@@ -50,10 +54,16 @@ pub fn get_board_for_simple_straight_moves(piece_type: PieceType) -> Board {
     let mut board = Board::with_pieces(vec![None; 8 * 8], 8);
 
     board
-        .set_piece_at_position(Piece::new(White, piece_type).into(), Square { rank: 2, file: 4 })
+        .set_piece_at_position(
+            Piece::new(White, piece_type).into(),
+            Square { rank: 2, file: 4 },
+        )
         .unwrap();
     board
-        .set_piece_at_position(Piece::new(White, piece_type).into(), Square { rank: 4, file: 2 })
+        .set_piece_at_position(
+            Piece::new(White, piece_type).into(),
+            Square { rank: 4, file: 2 },
+        )
         .unwrap();
 
     board

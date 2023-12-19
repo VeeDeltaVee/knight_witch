@@ -8,7 +8,6 @@ pub mod queen;
 pub mod rook;
 pub mod square;
 
-
 mod errors;
 mod piece;
 mod straight_moving_piece;
@@ -28,8 +27,7 @@ use self::king::KingMovement;
 use self::knight::KnightMovement;
 use self::queen::QueenMovement;
 use self::rook::RookMovement;
-use self::square::{UncheckedSquare, Square};
-
+use self::square::{Square, UncheckedSquare};
 
 // Represents a Offset on the board
 // Represents an offset from a position, used for raycasting
@@ -72,10 +70,7 @@ impl fmt::Display for Board {
         for rank in (0..self.squares.len() / self.width).rev() {
             write!(f, "\t")?;
             for file in 0..self.width {
-                let square = Square {
-                    rank,
-                    file,
-                };
+                let square = Square { rank, file };
                 if self.en_passant_target == Some(square) {
                     write!(f, "*")?;
                     continue;
@@ -94,7 +89,7 @@ impl fmt::Display for Board {
 impl Board {
     // Construct a default board
     pub fn default() -> Board {
-        use { PieceType::*, Side::* };
+        use {PieceType::*, Side::*};
         let mut white_back_rank = vec![
             Some(Piece::new(White, Rook)),
             Some(Piece::new(White, Knight)),
@@ -140,16 +135,18 @@ impl Board {
     /// instead of compressed. Makes for easier reading of tests etc.
     ///
     /// Note: This doesn't add any castling availability
-    /// Since in the arbitrary case there's no way to know 
+    /// Since in the arbitrary case there's no way to know
     /// if castling is available, we don't try, and say it's not
     /// available at all
     pub fn from_art(art: &str) -> Result<Self, &'static str> {
-        let pieces  = art.lines()
+        let pieces = art
+            .lines()
             .map(|line| line.chars().map(Piece::try_from).map(Result::ok))
             .rev();
 
         let mut widths = pieces.clone().map(|rank| rank.count());
-        let first_width = widths.next().ok_or("Can't create board with no height")?;
+        let first_width =
+            widths.next().ok_or("Can't create board with no height")?;
         widths.all(|w| w == first_width);
 
         Ok(Board::with_pieces(pieces.flatten().collect(), first_width))
@@ -162,7 +159,7 @@ impl Board {
             en_passant_target: None,
             current_move: Side::White,
 
-            // There's no real way to get the castling availability 
+            // There's no real way to get the castling availability
             // while constructing a board from pieces, so we set all to false
             castling_availability: [false, false, false, false],
         }
@@ -170,7 +167,10 @@ impl Board {
 
     // Generates a list of future board states that are possible from the
     // current board state.
-    pub fn generate_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
+    pub fn generate_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Board>, &'static str> {
         let mut moves = self.generate_pawn_moves(checked)?;
         moves.append(&mut self.generate_knight_moves(checked)?);
         moves.append(&mut self.generate_bishop_moves(checked)?);
@@ -217,28 +217,37 @@ impl Board {
         checked: bool,
     ) -> Result<Board, &'static str> {
         let mut new_board = self.clone();
-        new_board.make_move(ChessMove::SimpleMove(old_pos, new_pos), checked)?;
+        new_board
+            .make_move(ChessMove::SimpleMove(old_pos, new_pos), checked)?;
         Ok(new_board)
     }
 
     pub fn check_king_threat(&self) -> Result<bool, &'static str> {
         use PieceType::King;
-        let kings = self.get_positions_of_matching_pieces(Piece::new(self.current_move, King))?;
+        let kings = self.get_positions_of_matching_pieces(Piece::new(
+            self.current_move,
+            King,
+        ))?;
         let num_kings = kings.len();
 
         let mut skipped_move_board = self.clone();
-        skipped_move_board.current_move = skipped_move_board.current_move.flip();
+        skipped_move_board.current_move =
+            skipped_move_board.current_move.flip();
 
-        let other_sides_potential_moves = skipped_move_board.generate_moves(false)?;
+        let other_sides_potential_moves =
+            skipped_move_board.generate_moves(false)?;
 
         let is_king_in_threat = other_sides_potential_moves
             .iter()
-            .map(|b| b
-                .get_positions_of_matching_pieces(Piece::new(self.current_move, King))
-                .map(|ks| ks.len()).unwrap_or(0))
-            .any(|n| {
-                num_kings != n
-            });
+            .map(|b| {
+                b.get_positions_of_matching_pieces(Piece::new(
+                    self.current_move,
+                    King,
+                ))
+                .map(|ks| ks.len())
+                .unwrap_or(0)
+            })
+            .any(|n| num_kings != n);
 
         Ok(is_king_in_threat)
     }
@@ -246,9 +255,15 @@ impl Board {
     // Executes the given `chess_move` in place on self
     //
     // Returns error if the move can't be performed
-    pub fn make_move(&mut self, chess_move: ChessMove, checked: bool) -> Result<(), &'static str> {
+    pub fn make_move(
+        &mut self,
+        chess_move: ChessMove,
+        checked: bool,
+    ) -> Result<(), &'static str> {
         match chess_move {
-            ChessMove::SimpleMove(from, to) => self.make_simple_move(from, to, checked)?,
+            ChessMove::SimpleMove(from, to) => {
+                self.make_simple_move(from, to, checked)?
+            }
             ChessMove::Castling(dir) => self.castle(dir, checked)?,
         };
 
@@ -271,7 +286,8 @@ impl Board {
 
         if old_piece
             .ok_or("Can't make move, old_pos doesn't have piece")?
-            .side != self.current_move
+            .side
+            != self.current_move
         {
             Err("Can't make move, piece at old_pos isn't currently moving")
         } else if new_piece.is_some_and(|s| s.side == self.current_move) {
@@ -290,12 +306,15 @@ impl Board {
 
     /// Figure out how `chess_move` affects en_passant_target
     /// and update accordingly
-    fn update_en_passant_target(&mut self, chess_move: &ChessMove) -> Result<(), &'static str> {
+    fn update_en_passant_target(
+        &mut self,
+        chess_move: &ChessMove,
+    ) -> Result<(), &'static str> {
         match *chess_move {
             ChessMove::Castling(_) => {
                 self.en_passant_target = None;
                 Ok(())
-            },
+            }
             ChessMove::SimpleMove(from, to) => {
                 // Note: we're getting the piece at `to` because at this point
                 // the piece has already been moved and is at the new position
@@ -308,10 +327,14 @@ impl Board {
                 {
                     let en_passent_target_dir = Offset {
                         rank: offset.rank / 2,
-                        file: 0
+                        file: 0,
                     };
 
-                    self.en_passant_target = Some(self.add_offset_to_position(from, en_passent_target_dir)?);
+                    self.en_passant_target =
+                        Some(self.add_offset_to_position(
+                            from,
+                            en_passent_target_dir,
+                        )?);
                 } else {
                     self.en_passant_target = None;
                 }
@@ -322,24 +345,27 @@ impl Board {
     }
 
     // Returns the position that is related to the given index
-    pub fn index_to_position(&self, index: usize) -> Result<Square, &'static str> {
+    pub fn index_to_position(
+        &self,
+        index: usize,
+    ) -> Result<Square, &'static str> {
         if index >= self.squares.len() {
             Err("Index out of bounds")
         } else {
             let rank = index / self.width;
             let file = index - rank * self.width;
-            Ok(Square {
-                rank,
-                file,
-            })
+            Ok(Square { rank, file })
         }
     }
 
     // Checks that the square is a valid square on the board
     //
     // If the square is out of bounds in either or both directions an error is returned
-    fn check_square(&self, square: UncheckedSquare) -> Result<Square, InvalidSquareError> {
-        square.check_with_board(self) 
+    fn check_square(
+        &self,
+        square: UncheckedSquare,
+    ) -> Result<Square, InvalidSquareError> {
+        square.check_with_board(self)
     }
 
     fn get_positions_of_matching_pieces(
@@ -358,13 +384,23 @@ impl Board {
     //
     // If there are no pieces in the given offset, returns the last square that could be reached
     // If there is a piece in the given offset, returns position of that piece
-    fn check_ray_for_pieces(&self, pos: Square, offset: Offset, can_take: bool) -> Square {
+    fn check_ray_for_pieces(
+        &self,
+        pos: Square,
+        offset: Offset,
+        can_take: bool,
+    ) -> Square {
         let mut final_pos = pos;
         loop {
             match self.add_offset_to_position(final_pos, offset) {
                 Err(_) => break,
-                Ok(new_pos) => match self.get_piece_at_position(new_pos).unwrap() {
-                    Some(Piece { side, .. }) if side == self.current_move => break,
+                Ok(new_pos) => match self
+                    .get_piece_at_position(new_pos)
+                    .unwrap()
+                {
+                    Some(Piece { side, .. }) if side == self.current_move => {
+                        break
+                    }
                     Some(Piece { .. }) => {
                         if can_take {
                             final_pos = new_pos;
@@ -379,7 +415,12 @@ impl Board {
         final_pos
     }
 
-    fn get_all_squares_between(&self, start: Square, dest: Square, offset: Offset) -> Result<Vec<Square>, InvalidOffsetError> {
+    fn get_all_squares_between(
+        &self,
+        start: Square,
+        dest: Square,
+        offset: Offset,
+    ) -> Result<Vec<Square>, InvalidOffsetError> {
         let mut squares = vec![];
         let mut current = start;
         while current != dest {
@@ -453,10 +494,22 @@ mod test {
             let board = Board::default();
 
             for i in 8..16 {
-                assert!(matches!(board.squares[i], Some(Piece {piece_type: PieceType::Pawn, .. })));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::Pawn,
+                        ..
+                    })
+                ));
             }
             for i in 48..56 {
-                assert!(matches!(board.squares[i], Some(Piece {piece_type: PieceType::Pawn, .. })));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::Pawn,
+                        ..
+                    })
+                ));
             }
         }
 
@@ -473,7 +526,13 @@ mod test {
         fn has_rooks_where_it_should() {
             let board = Board::default();
             for i in [0, 7, 56, 63] {
-                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Rook, ..})));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::Rook,
+                        ..
+                    })
+                ));
             }
         }
 
@@ -481,7 +540,13 @@ mod test {
         fn has_knights_where_it_should() {
             let board = Board::default();
             for i in [1, 6, 57, 62] {
-                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Knight, ..})));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::Knight,
+                        ..
+                    })
+                ));
             }
         }
 
@@ -489,7 +554,13 @@ mod test {
         fn has_bishop_where_it_should() {
             let board = Board::default();
             for i in [2, 5, 58, 61] {
-                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Bishop, ..})));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::Bishop,
+                        ..
+                    })
+                ));
             }
         }
 
@@ -497,7 +568,13 @@ mod test {
         fn has_queens_where_it_should() {
             let board = Board::default();
             for i in [3, 59] {
-                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::Queen, ..})));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::Queen,
+                        ..
+                    })
+                ));
             }
         }
 
@@ -505,7 +582,13 @@ mod test {
         fn has_kings_where_it_should() {
             let board = Board::default();
             for i in [4, 60] {
-                assert!(matches!(board.squares[i], Some(Piece { piece_type: PieceType::King, ..})));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        piece_type: PieceType::King,
+                        ..
+                    })
+                ));
             }
         }
 
@@ -514,11 +597,23 @@ mod test {
             let board = Board::default();
 
             for i in 0..16 {
-                assert!(matches!(board.squares[i], Some(Piece { side: Side::White, .. })));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        side: Side::White,
+                        ..
+                    })
+                ));
             }
 
             for i in 48..64 {
-                assert!(matches!(board.squares[i], Some(Piece { side: Side::Black, .. })));
+                assert!(matches!(
+                    board.squares[i],
+                    Some(Piece {
+                        side: Side::Black,
+                        ..
+                    })
+                ));
             }
         }
     }

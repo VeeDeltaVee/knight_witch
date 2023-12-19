@@ -1,19 +1,36 @@
 use crate::board::Board;
 
-use super::{Offset, PieceType, straight_moving_piece::StraightMovingPieceMovement};
+use super::{
+    straight_moving_piece::StraightMovingPieceMovement, Offset, PieceType,
+};
 
 pub trait QueenMovement: StraightMovingPieceMovement {
-    fn generate_queen_moves(&self, checked: bool) -> Result<Vec<Self>, &'static str>
+    fn generate_queen_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
 }
 
 impl QueenMovement for Board {
-    fn generate_queen_moves(&self, checked: bool) -> Result<Vec<Board>, &'static str> {
-        let offsets: Vec<Offset> = [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-            .iter()
-            .map(|(x, y)| Offset { rank: *y, file: *x })
-            .collect();
+    fn generate_queen_moves(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Board>, &'static str> {
+        let offsets: Vec<Offset> = [
+            (0, 1),
+            (1, 0),
+            (0, -1),
+            (-1, 0),
+            (1, 1),
+            (1, -1),
+            (-1, 1),
+            (-1, -1),
+        ]
+        .iter()
+        .map(|(x, y)| Offset { rank: *y, file: *x })
+        .collect();
 
         self.generate_straight_moves(&offsets, PieceType::Queen, checked)
     }
@@ -23,7 +40,7 @@ impl QueenMovement for Board {
 mod test {
     use crate::board::{
         test_utils::{check_for_moves, get_board_for_simple_straight_moves},
-        Side, Square, Piece,
+        Piece, Side, Square,
     };
 
     use super::*;
