@@ -1,6 +1,21 @@
 use crate::board::Board;
 
-use super::{Offset, Piece, PieceType::*, Side::*, Square, UncheckedSquare};
+use super::{
+    chess_move::ChessMove,
+    Offset, Piece,
+    PieceType::{self, *},
+    Side::*,
+    Square, UncheckedSquare,
+};
+
+pub trait PawnState {
+    /// Figure out how `chess_move` affects en_passant_target
+    /// and update accordingly
+    fn update_en_passant_target(
+        &mut self,
+        chess_move: &ChessMove,
+    ) -> Result<(), &'static str>;
+}
 
 pub trait PawnMovement {
     fn generate_pawn_moves(
@@ -9,6 +24,46 @@ pub trait PawnMovement {
     ) -> Result<Vec<Self>, &'static str>
     where
         Self: Sized;
+}
+
+impl PawnState for Board {
+    fn update_en_passant_target(
+        &mut self,
+        chess_move: &ChessMove,
+    ) -> Result<(), &'static str> {
+        match *chess_move {
+            ChessMove::Castling(_) => {
+                self.en_passant_target = None;
+                Ok(())
+            }
+            ChessMove::SimpleMove(from, to) => {
+                // Note: we're getting the piece at `to` because at this point
+                // the piece has already been moved and is at the new position
+                let old_piece = self.get_piece_at_position(to)?;
+                let offset = self.get_offset_of_move(from, to);
+
+                if old_piece.is_some_and(|p| p.piece_type == PieceType::Pawn)
+                    && offset.rank.abs() == 2
+                    && from.file == to.file
+                {
+                    let en_passent_target_dir = Offset {
+                        rank: offset.rank / 2,
+                        file: 0,
+                    };
+
+                    self.en_passant_target =
+                        Some(self.add_offset_to_position(
+                            from,
+                            en_passent_target_dir,
+                        )?);
+                } else {
+                    self.en_passant_target = None;
+                }
+
+                Ok(())
+            }
+        }
+    }
 }
 
 impl PawnMovement for Board {

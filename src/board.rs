@@ -25,6 +25,7 @@ use self::chess_move::ChessMove;
 use self::errors::*;
 use self::king::KingMovement;
 use self::knight::KnightMovement;
+use self::pawn::PawnState;
 use self::queen::QueenMovement;
 use self::rook::RookMovement;
 use self::square::{Square, UncheckedSquare};
@@ -299,46 +300,6 @@ impl Board {
             if checked && self.check_king_threat()? {
                 Err("Can't make move, there's King in check")
             } else {
-                Ok(())
-            }
-        }
-    }
-
-    /// Figure out how `chess_move` affects en_passant_target
-    /// and update accordingly
-    fn update_en_passant_target(
-        &mut self,
-        chess_move: &ChessMove,
-    ) -> Result<(), &'static str> {
-        match *chess_move {
-            ChessMove::Castling(_) => {
-                self.en_passant_target = None;
-                Ok(())
-            }
-            ChessMove::SimpleMove(from, to) => {
-                // Note: we're getting the piece at `to` because at this point
-                // the piece has already been moved and is at the new position
-                let old_piece = self.get_piece_at_position(to)?;
-                let offset = self.get_offset_of_move(from, to);
-
-                if old_piece.is_some_and(|p| p.piece_type == PieceType::Pawn)
-                    && offset.rank.abs() == 2
-                    && from.file == to.file
-                {
-                    let en_passent_target_dir = Offset {
-                        rank: offset.rank / 2,
-                        file: 0,
-                    };
-
-                    self.en_passant_target =
-                        Some(self.add_offset_to_position(
-                            from,
-                            en_passent_target_dir,
-                        )?);
-                } else {
-                    self.en_passant_target = None;
-                }
-
                 Ok(())
             }
         }
