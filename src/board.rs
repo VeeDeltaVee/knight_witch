@@ -579,6 +579,32 @@ mod test {
         }
     }
 
+    /// See https://en.wikipedia.org/wiki/Shannon_number
+    ///
+    /// This test just compares the move generation of `board` against the
+    /// numbers found online. This is a pretty difficult test. Currently, at 5
+    /// ply, it takes 426 seconds to pass. I'm setting this to run at 3 ply for
+    /// now so that the test runs relatively quickly.
+    #[test]
+    fn generates_expected_move_counts() {
+        let board: Board = Board::default();
+
+        let expected_move_counts = [20, 400, 8902];
+        // let expected_move_counts = [20, 400, 8902, 197281, 4865609];
+
+        let mut current_boards = vec![board];
+        for &expected_move_count in expected_move_counts.iter() {
+            current_boards = current_boards
+                .iter()
+                .map(|board| board.generate_moves(true).unwrap())
+                .flatten()
+                .collect();
+
+            let actual_move_count = current_boards.len();
+            assert_eq!(expected_move_count, actual_move_count);
+        }
+    }
+
     #[test]
     fn from_art_works_as_expected() {
         let art = "rnbqkbnr\n\
