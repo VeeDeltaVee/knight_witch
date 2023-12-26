@@ -72,8 +72,9 @@ impl PawnMovement for Board {
         checked: bool,
     ) -> Result<Vec<Board>, &'static str> {
         let mut possible_moves = vec![];
-        let pawn_positions =
-            self.get_positions_of_matching_pieces(Piece::new(White, Pawn))?;
+        let pawn_positions = self.get_positions_of_matching_pieces(
+            Piece::new(self.current_move, Pawn),
+        )?;
 
         let single_move_offset: isize = match self.current_move {
             White => 1,
