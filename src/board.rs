@@ -166,6 +166,11 @@ impl Board {
         }
     }
 
+    /// A read only view into the squares of board.
+    pub fn get_squares(&self) -> &[Option<Piece>] {
+        &self.squares
+    }
+
     // Generates a list of future board states that are possible from the
     // current board state.
     pub fn generate_moves(
