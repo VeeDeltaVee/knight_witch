@@ -1,15 +1,15 @@
-pub mod bishop;
-pub mod castling;
+mod bishop;
+mod castling;
 pub mod chess_move;
-pub mod king;
-pub mod knight;
-pub mod pawn;
-pub mod queen;
-pub mod rook;
+mod king;
+mod knight;
+mod pawn;
+mod queen;
+mod rook;
 pub mod square;
 
 mod errors;
-mod piece;
+pub mod piece;
 mod straight_moving_piece;
 mod test_utils;
 
@@ -17,7 +17,7 @@ use crate::board::pawn::PawnMovement;
 use std::convert::TryFrom;
 use std::fmt;
 
-pub use piece::*;
+use piece::*;
 
 use self::bishop::BishopMovement;
 use self::castling::{CastlingMovement, CastlingState};
