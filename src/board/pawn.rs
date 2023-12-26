@@ -83,7 +83,7 @@ impl PawnMovement for Board {
 
         let starting_rank_for_current_side = match self.current_move {
             White => 1,
-            Black => self.width - 1,
+            Black => self.width - 2,
         };
 
         let current_side = self.current_move;
