@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Offset, Piece, PieceType::*, Side::*};
+use super::{Offset, Piece, PieceType::*};
 
 pub trait KnightMovement {
     fn generate_knight_moves(
@@ -27,8 +27,9 @@ impl KnightMovement for Board {
             (1, -2),
         ];
 
-        let knight_positions =
-            self.get_positions_of_matching_pieces(Piece::new(White, Knight))?;
+        let knight_positions = self.get_positions_of_matching_pieces(
+            Piece::new(self.current_move, Knight),
+        )?;
 
         let mut possible_boards = vec![];
         for old_pos in knight_positions {
@@ -46,8 +47,12 @@ impl KnightMovement for Board {
                 .filter(|new_pos| {
                     match self.get_piece_at_position(*new_pos).unwrap() {
                         None => true,
-                        Some(Piece { side: Black, .. }) => true,
-                        Some(Piece { side: White, .. }) => false,
+                        Some(Piece { side: os, .. })
+                            if os != self.current_move =>
+                        {
+                            true
+                        }
+                        _ => false,
                     }
                 })
                 // Should be able to move there without error
@@ -67,6 +72,7 @@ impl KnightMovement for Board {
 mod test {
     use super::*;
     use crate::board::test_utils::check_for_moves;
+    use crate::board::Side::*;
     use crate::board::Square;
 
     // Returns a board with the setup
