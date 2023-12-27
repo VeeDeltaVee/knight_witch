@@ -1,7 +1,7 @@
 use crate::board::Board;
 
 use super::{
-    chess_move::ChessMove,
+    chess_move::{ChessMove},
     Offset, Piece,
     PieceType::{self, *},
     Side::*,
