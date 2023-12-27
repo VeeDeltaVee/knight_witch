@@ -1,21 +1,19 @@
 use crate::board::Board;
 
-use super::{Offset, Piece, PieceType::King};
+use super::{chess_move::ChessMove, Offset, Piece, PieceType::King};
 
 pub trait KingMovement {
     fn generate_king_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str>
-    where
-        Self: Sized;
+    ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
 impl KingMovement for Board {
     fn generate_king_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let offsets = [
             (0, 1),
             (1, 0),
@@ -45,9 +43,15 @@ impl KingMovement for Board {
                     .map(move |new| (pos, new))
             })
             .filter_map(|(old, new)| {
-                let new_board =
-                    self.new_board_with_moved_piece(old, new, checked).ok()?;
-                Some(new_board)
+                // TODO: for now, we keep attempting to create a board
+                // temporarily, to use make_move as validation. This really
+                // should be removed, and we should just have a "validate_move"
+                // method
+                self.new_board_with_moved_piece(old, new, checked).ok()?;
+
+                // If the last statement didn't short circuit and exit with an
+                // error, we know that the move is valid
+                ChessMove::SimpleMove(old, new).into()
             })
             .collect();
 
@@ -72,7 +76,7 @@ mod test {
     fn moves_one_step_nearby() {
         let board = get_board_for_simple_king_moves();
 
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         // every place other than the centre should have a king move
         for rank in 0..2 {

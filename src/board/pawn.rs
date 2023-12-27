@@ -21,9 +21,15 @@ pub trait PawnMovement {
     fn generate_pawn_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str>
-    where
-        Self: Sized;
+    ) -> Result<Vec<ChessMove>, &'static str>;
+
+    /// Takes a deconstructed ChessMove::EnPassant, and executes it on self.
+    fn capture_en_passant(
+        &mut self,
+        from: Square,
+        to: Square,
+        capturing: Square,
+    ) -> Result<(), &'static str>;
 }
 
 impl PawnState for Board {
@@ -32,7 +38,7 @@ impl PawnState for Board {
         chess_move: &ChessMove,
     ) -> Result<(), &'static str> {
         match *chess_move {
-            ChessMove::Castling(_) => {
+            ChessMove::Castling(_) | ChessMove::EnPassant(_, _, _) => {
                 self.en_passant_target = None;
                 Ok(())
             }
@@ -70,7 +76,7 @@ impl PawnMovement for Board {
     fn generate_pawn_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Board>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let mut possible_moves = vec![];
         let pawn_positions = self.get_positions_of_matching_pieces(
             Piece::new(self.current_move, Pawn),
@@ -90,7 +96,7 @@ impl PawnMovement for Board {
         let opposite_side = current_side.flip();
 
         // Append single square pawn moves
-        let single_square_pawn_move_boards = pawn_positions
+        let single_square_pawn_moves = pawn_positions
             .iter()
             .filter_map(|pos| {
                 Some((
@@ -114,13 +120,21 @@ impl PawnMovement for Board {
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
+                // TODO: for now, we keep attempting to create a board
+                // temporarily, to use make_move as validation. This really
+                // should be removed, and we should just have a "validate_move"
+                // method
                 self.new_board_with_moved_piece(*old_pos, new_pos, checked)
-                    .ok()
+                    .ok()?;
+
+                // If the last statement didn't short circuit and exit with an
+                // error, we know that the move is valid
+                ChessMove::SimpleMove(*old_pos, new_pos).into()
             });
-        possible_moves.extend(single_square_pawn_move_boards);
+        possible_moves.extend(single_square_pawn_moves);
 
         // Append double square pawn moves
-        let double_square_pawn_move_boards = pawn_positions
+        let double_square_pawn_moves = pawn_positions
             .iter()
             .filter_map(|pos| {
                 Some((
@@ -162,21 +176,19 @@ impl PawnMovement for Board {
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
+                // TODO: for now, we keep attempting to create a board
+                // temporarily, to use make_move as validation. This really
+                // should be removed, and we should just have a "validate_move"
+                // method
                 self.new_board_with_moved_piece(*old_pos, new_pos, checked)
-                    .ok()
-                    // Should set the en_passant_target
-                    .and_then(|mut board| {
-                        board.en_passant_target = Some(Square {
-                            rank: new_pos
-                                .rank
-                                .checked_add_signed(-single_move_offset)?,
-                            file: new_pos.file,
-                        });
-                        Some(board)
-                    })
+                    .ok()?;
+
+                // If the last statement didn't short circuit and exit with an
+                // error, we know that the move is valid
+                ChessMove::SimpleMove(*old_pos, new_pos).into()
             });
 
-        possible_moves.extend(double_square_pawn_move_boards);
+        possible_moves.extend(double_square_pawn_moves);
 
         // Append pawn captures
         let pawn_capture_left_moves = pawn_positions
@@ -208,7 +220,7 @@ impl PawnMovement for Board {
                 ))
             });
 
-        let pawn_capture_boards = pawn_capture_left_moves
+        let pawn_capture_moves = pawn_capture_left_moves
             .clone()
             .chain(pawn_capture_right_moves.clone())
             // The final destination should have an opponent's piece
@@ -222,13 +234,22 @@ impl PawnMovement for Board {
             })
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
-                self.new_board_with_moved_piece(*old_pos, new_pos, checked)
-                    .ok()
+                // TODO: for now, we keep attempting to create a board
+                // temporarily, to use make_move as validation. This really
+                // should be removed, and we should just have a "validate_move"
+                // method
+                let mut new_board = self.clone();
+                let en_passant_move = ChessMove::SimpleMove(*old_pos, new_pos);
+                new_board.make_move(en_passant_move.clone(), checked).ok()?;
+
+                // If the last statement didn't short circuit and exit with an
+                // error, we know that the move is valid
+                en_passant_move.into()
             });
-        possible_moves.extend(pawn_capture_boards);
+        possible_moves.extend(pawn_capture_moves);
 
         // Append en passant captures
-        let en_passant_boards = pawn_capture_left_moves
+        let en_passant_moves = pawn_capture_left_moves
             .chain(pawn_capture_right_moves)
             // The final destination should be the en passant target, set by the opponent's last move
             .filter_map(|(old_pos, new_pos)| {
@@ -237,27 +258,42 @@ impl PawnMovement for Board {
             .filter(|(_, new_pos)| Some(*new_pos) == self.en_passant_target)
             // Should be able to move there without error
             .filter_map(|(old_pos, new_pos)| {
+                // TODO: for now, we keep attempting to create a board
+                // temporarily, to use make_move as validation. This really
+                // should be removed, and we should just have a "validate_move"
+                // method
                 self.new_board_with_moved_piece(*old_pos, new_pos, checked)
-                    .ok()
-                    .and_then(|mut board| {
-                        board
-                            .set_piece_at_position(
-                                None,
-                                Square {
-                                    rank: new_pos.rank.checked_add_signed(
-                                        -single_move_offset,
-                                    )?,
-                                    file: new_pos.file,
-                                },
-                            )
-                            .unwrap();
+                    .ok()?;
 
-                        Some(board)
-                    })
+                let capturing = Square {
+                    rank: new_pos
+                        .rank
+                        .checked_add_signed(-single_move_offset)?,
+                    file: new_pos.file,
+                };
+
+                // If the last statement didn't short circuit and exit with an
+                // error, we know that the move is valid
+                ChessMove::EnPassant(*old_pos, new_pos, capturing).into()
             });
-        possible_moves.extend(en_passant_boards);
+        possible_moves.extend(en_passant_moves);
 
         Ok(possible_moves)
+    }
+
+    fn capture_en_passant(
+        &mut self,
+        from: Square,
+        to: Square,
+        capturing: Square,
+    ) -> Result<(), &'static str> {
+        let old_piece = self.get_piece_at_position(from)?;
+
+        self.set_piece_at_position(None, from)?;
+        self.set_piece_at_position(None, capturing)?;
+        self.set_piece_at_position(old_piece, to)?;
+
+        Ok(())
     }
 }
 
@@ -354,7 +390,7 @@ mod test {
     #[test]
     fn one_square_forward() {
         let board = get_test_board_for_simple_pawn_moves();
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         let expected_single_square_pushes = vec![
             Square { rank: 2, file: 0 },
@@ -376,7 +412,7 @@ mod test {
     #[test]
     fn two_squares_forward() {
         let board = get_test_board_for_simple_pawn_moves();
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         let expected_double_square_pushes =
             vec![Square { rank: 3, file: 0 }, Square { rank: 3, file: 5 }];
@@ -399,7 +435,7 @@ mod test {
     fn captures_opponents_pieces() {
         let board = get_test_board_for_pawn_captures();
 
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         // At least one of the moves suggested should have the pawn
         // take a piece
@@ -417,7 +453,7 @@ mod test {
     fn doesnt_capture_friendly_pieces() {
         let board = get_test_board_for_pawn_captures();
 
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         // None of the moves should have a pawn taking the friendly piece
         assert!(moved_boards.into_iter().all(|x| !matches!(
@@ -434,7 +470,7 @@ mod test {
     fn captures_en_passant() {
         let board = get_test_board_for_pawn_captures();
 
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         // At least one of the moves suggested should have the pawn
         // take the pawn en passant

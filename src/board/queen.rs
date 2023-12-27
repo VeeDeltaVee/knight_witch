@@ -1,23 +1,22 @@
 use crate::board::Board;
 
 use super::{
-    straight_moving_piece::StraightMovingPieceMovement, Offset, PieceType,
+    chess_move::ChessMove, straight_moving_piece::StraightMovingPieceMovement,
+    Offset, PieceType,
 };
 
 pub trait QueenMovement: StraightMovingPieceMovement {
     fn generate_queen_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str>
-    where
-        Self: Sized;
+    ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
 impl QueenMovement for Board {
     fn generate_queen_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Board>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let offsets: Vec<Offset> = [
             (0, 1),
             (1, 0),
@@ -49,7 +48,7 @@ mod test {
     fn moves_both_orthogonally_and_diagonally() {
         let board = get_board_for_simple_straight_moves(PieceType::Queen);
 
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         let expected_moves = vec![
             Square { rank: 2, file: 3 },

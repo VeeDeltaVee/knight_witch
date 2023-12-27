@@ -1,6 +1,6 @@
 use crate::board::Board;
 
-use super::{Offset, Piece, PieceType};
+use super::{chess_move::ChessMove, Offset, Piece, PieceType};
 
 pub trait StraightMovingPieceMovement {
     fn generate_straight_moves(
@@ -8,9 +8,7 @@ pub trait StraightMovingPieceMovement {
         offsets: &[Offset],
         piece_type: PieceType,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str>
-    where
-        Self: Sized;
+    ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
 impl StraightMovingPieceMovement for Board {
@@ -19,7 +17,7 @@ impl StraightMovingPieceMovement for Board {
         offsets: &[Offset],
         piece_type: PieceType,
         checked: bool,
-    ) -> Result<Vec<Board>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let positions = self.get_positions_of_matching_pieces(Piece::new(
             self.current_move,
             piece_type,
@@ -40,7 +38,15 @@ impl StraightMovingPieceMovement for Board {
                     .map(move |new| (pos, new))
             })
             .filter_map(|(old, new)| {
-                self.new_board_with_moved_piece(old, new, checked).ok()
+                // TODO: for now, we keep attempting to create a board
+                // temporarily, to use make_move as validation. This really
+                // should be removed, and we should just have a "validate_move"
+                // method
+                self.new_board_with_moved_piece(old, new, checked).ok()?;
+
+                // If the last statement didn't short circuit and exit with an
+                // error, we know that the move is valid
+                ChessMove::SimpleMove(old, new).into()
             })
             .collect();
 

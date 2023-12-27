@@ -171,12 +171,12 @@ impl Board {
         &self.squares
     }
 
-    // Generates a list of future board states that are possible from the
+    // Generates a list of moves that are possible from the
     // current board state.
     pub fn generate_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Board>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let mut moves = self.generate_pawn_moves(checked)?;
         moves.append(&mut self.generate_knight_moves(checked)?);
         moves.append(&mut self.generate_bishop_moves(checked)?);
@@ -186,6 +186,25 @@ impl Board {
         moves.append(&mut self.generate_castling_moves(checked)?);
 
         Ok(moves)
+    }
+
+    // Generates a list of future board states that are possible from the
+    // current board state.
+    pub fn generate_moved_boards(
+        &self,
+        checked: bool,
+    ) -> Result<Vec<Board>, &'static str> {
+        let moves = self.generate_moves(checked)?;
+
+        moves
+            .into_iter()
+            .map(|chess_move| {
+                let mut clone = self.clone();
+                clone.make_move(chess_move, checked)?;
+
+                Ok(clone)
+            })
+            .collect()
     }
 
     // Gets the piece that's at the given position.
@@ -242,7 +261,7 @@ impl Board {
             skipped_move_board.current_move.flip();
 
         let other_sides_potential_moves =
-            skipped_move_board.generate_moves(false)?;
+            skipped_move_board.generate_moved_boards(false)?;
 
         let is_king_in_threat = other_sides_potential_moves
             .iter()
@@ -269,10 +288,17 @@ impl Board {
     ) -> Result<(), &'static str> {
         match chess_move {
             ChessMove::SimpleMove(from, to) => {
-                self.make_simple_move(from, to, checked)?
+                self.make_simple_move(from, to)?
+            }
+            ChessMove::EnPassant(from, to, capturing) => {
+                self.capture_en_passant(from, to, capturing)?
             }
             ChessMove::Castling(dir) => self.castle(dir, checked)?,
         };
+
+        if checked && self.check_king_threat()? {
+            return Err("Can't make move, there's King in check");
+        }
 
         self.update_en_passant_target(&chess_move)?;
         self.update_castling_state(&chess_move);
@@ -286,7 +312,6 @@ impl Board {
         &mut self,
         from: Square,
         to: Square,
-        checked: bool,
     ) -> Result<(), &'static str> {
         let old_piece = self.get_piece_at_position(from)?;
         let new_piece = self.get_piece_at_position(to)?;
@@ -301,13 +326,7 @@ impl Board {
             Err("Can't make move, friendly piece exists at new_pos")
         } else {
             self.set_piece_at_position(None, from)?;
-            self.set_piece_at_position(old_piece, to)?;
-
-            if checked && self.check_king_threat()? {
-                Err("Can't make move, there's King in check")
-            } else {
-                Ok(())
-            }
+            self.set_piece_at_position(old_piece, to)
         }
     }
 
@@ -602,7 +621,7 @@ mod test {
         for &expected_move_count in expected_move_counts.iter() {
             current_boards = current_boards
                 .iter()
-                .map(|board| board.generate_moves(true).unwrap())
+                .map(|board| board.generate_moved_boards(true).unwrap())
                 .flatten()
                 .collect();
 

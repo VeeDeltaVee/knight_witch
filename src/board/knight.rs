@@ -1,21 +1,19 @@
 use crate::board::Board;
 
-use super::{Offset, Piece, PieceType::*};
+use super::{chess_move::ChessMove, Offset, Piece, PieceType::*};
 
 pub trait KnightMovement {
     fn generate_knight_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str>
-    where
-        Self: Sized;
+    ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
 impl KnightMovement for Board {
     fn generate_knight_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Board>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let jumps = [
             (-1, 2),
             (1, 2),
@@ -31,9 +29,9 @@ impl KnightMovement for Board {
             Piece::new(self.current_move, Knight),
         )?;
 
-        let mut possible_boards = vec![];
+        let mut possible_moves = vec![];
         for old_pos in knight_positions {
-            let new_boards = jumps
+            let new_moves = jumps
                 .iter()
                 .map(|(file, rank)| Offset {
                     file: *file,
@@ -57,14 +55,22 @@ impl KnightMovement for Board {
                 })
                 // Should be able to move there without error
                 .filter_map(|new_pos| {
+                    // TODO: for now, we keep attempting to create a board
+                    // temporarily, to use make_move as validation. This really
+                    // should be removed, and we should just have a
+                    // "validate_move" method
                     self.new_board_with_moved_piece(old_pos, new_pos, checked)
-                        .ok()
+                        .ok()?;
+
+                    // If the last statement didn't short circuit and exit with
+                    // an error, we know that the move is valid
+                    ChessMove::SimpleMove(old_pos, new_pos).into()
                 });
 
-            possible_boards.extend(new_boards);
+            possible_moves.extend(new_moves);
         }
 
-        Ok(possible_boards)
+        Ok(possible_moves)
     }
 }
 
@@ -143,7 +149,7 @@ mod test {
     fn moves_like_a_knight() {
         let board = get_board_for_simple_knight_moves();
 
-        let moved_boards = board.generate_moves(true).unwrap();
+        let moved_boards = board.generate_moved_boards(true).unwrap();
 
         let expected_moves = vec![
             Square { rank: 5, file: 2 },

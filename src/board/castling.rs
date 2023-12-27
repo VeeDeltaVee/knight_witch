@@ -33,9 +33,7 @@ pub trait CastlingMovement {
     fn generate_castling_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str>
-    where
-        Self: Sized;
+    ) -> Result<Vec<ChessMove>, &'static str>;
 
     /// Changes `self` in place by castling in the given `dir`
     ///
@@ -133,6 +131,12 @@ impl CastlingState for Board {
                     CastlingDirection::Kingside,
                 );
             }
+
+            // En passant captures can't disallow castling
+            // Either a rook was captured en passant, in which case castling was
+            // already disallowed when the rook moved off the starting square,
+            // or it was a different piece, in which case we don't care.
+            ChessMove::EnPassant(_, _, _) => {}
         }
     }
 }
@@ -144,7 +148,7 @@ impl CastlingMovement for Board {
     fn generate_castling_moves(
         &self,
         checked: bool,
-    ) -> Result<Vec<Self>, &'static str> {
+    ) -> Result<Vec<ChessMove>, &'static str> {
         let any_castling_state_enabled = self.is_any_castling_state_enabled();
         if !any_castling_state_enabled {
             return Ok(vec![]);
@@ -163,10 +167,7 @@ impl CastlingMovement for Board {
                 continue;
             }
 
-            let mut castled_board = self.clone();
-            castled_board.unchecked_castle(dir);
-
-            moves.push(castled_board);
+            moves.push(ChessMove::Castling(dir));
         }
 
         Ok(moves)

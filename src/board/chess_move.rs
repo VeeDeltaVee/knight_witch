@@ -5,12 +5,23 @@ use super::{castling::CastlingDirection, Square};
 #[derive(Debug, Clone)]
 pub enum ChessMove {
     SimpleMove(Square, Square),
+
+    /// A move from a square, to different square, capturing a third piece
+    /// that's the target for en passant capture
+    EnPassant(Square, Square, Square),
+
     Castling(CastlingDirection),
 }
 
 impl TryFrom<&str> for ChessMove {
     type Error = &'static str;
 
+    /// Note that this doesn't work with en_passent moves at the moment. That
+    /// conversion would require knowing the context of the board, which this
+    /// function can't know.
+    ///
+    /// For en passant moves, this function just returns as if it were a simple
+    /// capture move
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if value == "O-O" {
             return Ok(ChessMove::Castling(CastlingDirection::Kingside));
