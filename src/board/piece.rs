@@ -1,7 +1,7 @@
 use std::{convert::TryFrom, fmt};
 
 /// Represents a type of chess piece.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PieceType {
     Pawn,
     Knight,
@@ -12,7 +12,7 @@ pub enum PieceType {
 }
 
 /// Represents the color of a chess piece.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Side {
     White,
     Black,
@@ -28,7 +28,7 @@ impl Side {
 }
 
 /// Represents a tile on the chessboard and the piece optionally on it.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Piece {
     pub side: Side,
     pub piece_type: PieceType,

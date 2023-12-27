@@ -41,7 +41,7 @@ pub struct Offset {
     rank: isize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Board {
     // An array of squares for the board.
     // In a typical chess game, this would be a vector with length 64.
@@ -453,6 +453,8 @@ impl Board {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use super::*;
 
     mod default {
@@ -612,20 +614,34 @@ mod test {
     /// now so that the test runs relatively quickly.
     #[test]
     fn generates_expected_move_counts() {
-        let board: Board = Board::default();
-
         let expected_move_counts = [20, 400, 8902];
         // let expected_move_counts = [20, 400, 8902, 197281, 4865609];
 
-        let mut current_boards = vec![board];
-        for &expected_move_count in expected_move_counts.iter() {
-            current_boards = current_boards
-                .iter()
-                .map(|board| board.generate_moved_boards(true).unwrap())
-                .flatten()
-                .collect();
+        let mut current_boards = vec![Board::default()];
+        let mut generated_moves: HashMap<Board, Vec<ChessMove>> =
+            HashMap::new();
 
-            let actual_move_count = current_boards.len();
+        for &expected_move_count in expected_move_counts.iter() {
+            if !generated_moves.is_empty() && !current_boards.is_empty() {
+                current_boards.clear();
+                for (board, chess_moves) in generated_moves {
+                    for chess_move in chess_moves {
+                        let mut new_board = board.clone();
+                        new_board.make_move(chess_move, false).unwrap();
+                        current_boards.push(new_board);
+                    }
+                }
+            }
+
+            generated_moves = HashMap::new();
+            for board in current_boards.iter() {
+                let moves = board.generate_moves(true).unwrap();
+                generated_moves.insert(board.clone(), moves);
+            }
+
+            let actual_move_count = generated_moves
+                .iter()
+                .fold(0, |count, (_b, ms)| count + ms.len());
             assert_eq!(expected_move_count, actual_move_count);
         }
     }

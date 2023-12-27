@@ -5,7 +5,7 @@ use super::{Board, Orientation};
 ///
 /// File counts from the left, starts at 0
 /// Rank counts from the bottom, starts at 0
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Square {
     pub file: usize,
     pub rank: usize,
