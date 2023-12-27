@@ -183,6 +183,7 @@ impl Board {
         moves.append(&mut self.generate_rook_moves(checked)?);
         moves.append(&mut self.generate_queen_moves(checked)?);
         moves.append(&mut self.generate_king_moves(checked)?);
+        moves.append(&mut self.generate_castling_moves(checked)?);
 
         Ok(moves)
     }

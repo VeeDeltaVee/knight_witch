@@ -150,7 +150,7 @@ impl CastlingMovement for Board {
             return Ok(vec![]);
         }
 
-        if self.check_king_threat()? {
+        if checked && self.check_king_threat()? {
             return Ok(vec![]);
         }
 
