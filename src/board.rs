@@ -1,6 +1,7 @@
 mod bishop;
 mod castling;
 pub mod chess_move;
+pub mod game;
 mod king;
 mod knight;
 mod pawn;
@@ -23,6 +24,7 @@ use self::bishop::BishopMovement;
 use self::castling::{CastlingMovement, CastlingState};
 use self::chess_move::ChessMove;
 use self::errors::*;
+use self::game::ChessResult;
 use self::king::KingMovement;
 use self::knight::KnightMovement;
 use self::pawn::PawnState;
@@ -276,6 +278,23 @@ impl Board {
             .any(|n| num_kings != n);
 
         Ok(is_king_in_threat)
+    }
+
+    /// Returns whether the game is in progress or has ended, along with the
+    /// result.
+    ///
+    /// Don't call in really performance intensive situations, because it has to
+    /// execute another make_move to figure out king threat.
+    pub fn get_game_result(&self) -> Result<Option<ChessResult>, &'static str> {
+        if self.generate_moves(true)?.is_empty() {
+            if self.check_king_threat()? {
+                Ok(Some(ChessResult::Checkmate(self.current_move)))
+            } else {
+                Ok(Some(ChessResult::Draw))
+            }
+        } else {
+            Ok(None)
+        }
     }
 
     // Executes the given `chess_move` in place on self
