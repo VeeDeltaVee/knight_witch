@@ -1,6 +1,7 @@
 mod bishop;
 mod castling;
 pub mod chess_move;
+pub mod game;
 mod king;
 mod knight;
 mod pawn;
@@ -169,6 +170,14 @@ impl Board {
     /// A read only view into the squares of board.
     pub fn get_squares(&self) -> &[Option<Piece>] {
         &self.squares
+    }
+
+    /// A view into the currently moving side
+    ///
+    /// This doesn't need to return a reference, because a Side is just a binary
+    /// enum and will clone cheaply. It implements Copy.
+    pub fn get_current_side(&self) -> Side {
+        self.current_move
     }
 
     // Generates a list of moves that are possible from the
