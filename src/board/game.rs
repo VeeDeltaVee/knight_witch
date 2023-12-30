@@ -6,7 +6,7 @@ use super::piece::Side;
 ///
 /// A game can end in a draw (stalemate or insufficient material), or it can end
 /// in checkmate for one side or the other.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ChessResult {
     Draw,
     Checkmate(Side),
@@ -19,6 +19,7 @@ pub enum ChessResult {
 /// `White `being better is evaluated as positive, and `Black` being better is
 /// evaluated as negative
 impl Ord for ChessResult {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         use Ordering::{Equal, Greater, Less};
 
@@ -53,6 +54,7 @@ impl Ord for ChessResult {
 ///
 /// This can never return `None`, and can be safely unwrapped
 impl PartialOrd for ChessResult {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }

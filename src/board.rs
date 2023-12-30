@@ -173,6 +173,19 @@ impl Board {
         &self.squares
     }
 
+    /// A view into the currently moving side
+    ///
+    /// This doesn't need to return a reference, because a Side is just a binary
+    /// enum and will clone cheaply. It implements Copy.
+    pub fn get_current_side(&self) -> Side {
+        self.current_move
+    }
+
+    pub fn flip_current_side(&mut self) -> &mut Self {
+        self.current_move = self.current_move.flip();
+        self
+    }
+
     // Generates a list of moves that are possible from the
     // current board state.
     pub fn generate_moves(
