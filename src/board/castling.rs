@@ -8,7 +8,7 @@ use self::implementation::{
 use super::{chess_move::ChessMove, Board};
 
 /// Define which side castlign is going to happen
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CastlingDirection {
     Kingside,
     Queenside,

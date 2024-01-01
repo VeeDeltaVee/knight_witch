@@ -29,6 +29,18 @@ pub enum Evaluation {
     Certain(ChessResult, Depth),
 }
 
+impl Evaluation {
+    /// Returns a deepened evaluation, i.e. if it's certain increases the depth
+    /// by one
+    pub fn deepen(self) -> Self {
+        if let Evaluation::Certain(r, d) = self {
+            Evaluation::Certain(r, d + 1)
+        } else {
+            self
+        }
+    }
+}
+
 /// Evaluation has a custom implementation for Ord, because comparing vague
 /// centipawn evaluations with a concrete Draw and Checkmate is not
 /// straightforward

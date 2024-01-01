@@ -8,11 +8,11 @@ use super::{
 /// ResultEvaluator is another really simple evaluator. It just figures out if
 /// the game is over, and if it is, it returns that result as a `Certain`
 /// result. Otherwise, it returns a zero `Centipawn` result
-struct ResultEvaluator {}
+pub struct ResultEvaluator {}
 
 impl ResultEvaluator {
     #[allow(dead_code)]
-    fn new() -> Self {
+    pub fn new() -> Self {
         ResultEvaluator {}
     }
 }

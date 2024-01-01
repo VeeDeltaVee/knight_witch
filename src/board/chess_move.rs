@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use super::{castling::CastlingDirection, Square};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChessMove {
     SimpleMove(Square, Square),
 
