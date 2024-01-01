@@ -485,8 +485,6 @@ impl Board {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
     use super::*;
 
     mod default {
@@ -642,39 +640,39 @@ mod test {
     ///
     /// This test just compares the move generation of `board` against the
     /// numbers found online. This is a pretty difficult test. Currently, at 5
-    /// ply, it takes 426 seconds to pass. I'm setting this to run at 3 ply for
-    /// now so that the test runs relatively quickly.
+    /// ply, it takes 26 seconds to pass in release mode. I'm setting this to
+    /// run at 4 ply for now so that the test runs relatively quickly.
     #[test]
     fn generates_expected_move_counts() {
-        let expected_move_counts = [20, 400, 8902];
+        let expected_move_counts = [20, 400, 8902, 197281];
         // let expected_move_counts = [20, 400, 8902, 197281, 4865609];
 
-        let mut current_boards = vec![Board::default()];
-        let mut generated_moves: HashMap<Board, Vec<ChessMove>> =
-            HashMap::new();
-
-        for &expected_move_count in expected_move_counts.iter() {
-            if !generated_moves.is_empty() && !current_boards.is_empty() {
-                current_boards.clear();
-                for (board, chess_moves) in generated_moves {
-                    for chess_move in chess_moves {
-                        let mut new_board = board.clone();
-                        new_board.make_move(chess_move, false).unwrap();
-                        current_boards.push(new_board);
-                    }
-                }
-            }
-
-            generated_moves = HashMap::new();
-            for board in current_boards.iter() {
-                let moves = board.generate_moves(true).unwrap();
-                generated_moves.insert(board.clone(), moves);
-            }
-
-            let actual_move_count = generated_moves
-                .iter()
-                .fold(0, |count, (_b, ms)| count + ms.len());
+        for (depth, &expected_move_count) in
+            expected_move_counts.iter().enumerate()
+        {
+            let actual_move_count =
+                generate_move_tree(&Board::default(), depth as u8);
             assert_eq!(expected_move_count, actual_move_count);
+        }
+    }
+
+    fn generate_move_tree(board: &Board, depth: u8) -> usize {
+        let moves = board.generate_moves(true).unwrap();
+
+        if depth == 0 {
+            moves.len()
+        } else {
+            moves
+                .into_iter()
+                .map(|m| {
+                    let mut new_board = board.clone();
+                    new_board.make_move(m.clone(), false).unwrap();
+
+                    let count = generate_move_tree(&new_board, depth - 1);
+
+                    count
+                })
+                .sum()
         }
     }
 
