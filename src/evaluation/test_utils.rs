@@ -1,3 +1,7 @@
+use crate::board::Board;
+
+use super::{evaluation_result::Evaluation, Evaluator};
+
 #[macro_export]
 macro_rules! assert_board_evaluation {
     ($board:expr, $evaluator:expr, $expected_evaluation:expr) => {
@@ -65,4 +69,14 @@ macro_rules! test_board_evaluation {
             );
         }
     };
+}
+
+pub struct DummyEvaluator {
+    pub result: Evaluation,
+}
+
+impl Evaluator for DummyEvaluator {
+    fn evaluate(&self, _: &Board) -> Result<Evaluation, &'static str> {
+        Ok(self.result)
+    }
 }

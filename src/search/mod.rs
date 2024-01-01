@@ -1,7 +1,7 @@
 pub mod minimax;
 use crate::{
     board::{chess_move::ChessMove, Board},
-    evaluation::Evaluation,
+    evaluation::evaluation_result::Evaluation,
 };
 
 /// A searcher is a type that can look through the move tree and figure out a

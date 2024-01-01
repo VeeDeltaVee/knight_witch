@@ -1,6 +1,7 @@
+use crate::evaluation::evaluation_result::Evaluation;
 use crate::{
     board::{chess_move::ChessMove, piece::Side, Board},
-    evaluation::{Evaluation, Evaluator},
+    evaluation::Evaluator,
 };
 
 use super::Searcher;
