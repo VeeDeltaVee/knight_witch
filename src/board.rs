@@ -264,33 +264,154 @@ impl Board {
     }
 
     pub fn check_king_threat(&self) -> Result<bool, &'static str> {
-        use PieceType::King;
-        let kings = self.get_positions_of_matching_pieces(Piece::new(
-            self.current_move,
-            King,
-        ))?;
-        let num_kings = kings.len();
+        let opponents_side = self.current_move.flip();
 
-        let mut skipped_move_board = self.clone();
-        skipped_move_board.current_move =
-            skipped_move_board.current_move.flip();
+        // There might somehow be multiple kings in the position for the current
+        // side, so get them all.
+        let king_positions = self.get_positions_of_matching_pieces(
+            Piece::new(self.current_move, PieceType::King),
+        )?;
 
-        let other_sides_potential_moves =
-            skipped_move_board.generate_moved_boards(false)?;
+        // if any king is in check, the king is threatened
+        for pos in king_positions {
+            let knight_offsets = [
+                (-1, 2),
+                (1, 2),
+                (-2, 1),
+                (2, 1),
+                (-2, -1),
+                (2, -1),
+                (-1, -2),
+                (1, -2),
+            ];
+            if self.check_king_threat_from_offset(
+                pos,
+                &knight_offsets,
+                PieceType::Knight,
+            )? {
+                return Ok(true);
+            }
 
-        let is_king_in_threat = other_sides_potential_moves
+            let opponents_king_offsets = [
+                (0, 1),
+                (1, 0),
+                (0, -1),
+                (-1, 0),
+                (1, 1),
+                (1, -1),
+                (-1, 1),
+                (-1, -1),
+            ];
+            if self.check_king_threat_from_offset(
+                pos,
+                &opponents_king_offsets,
+                PieceType::King,
+            )? {
+                return Ok(true);
+            }
+
+            let rook_offsets = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+            if self.check_king_threat_from_offset_extent(
+                pos,
+                &rook_offsets,
+                PieceType::Rook,
+            )? || self.check_king_threat_from_offset_extent(
+                pos,
+                &rook_offsets,
+                PieceType::Queen,
+            )? {
+                return Ok(true);
+            }
+
+            let bishop_offsets = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
+            if self.check_king_threat_from_offset_extent(
+                pos,
+                &bishop_offsets,
+                PieceType::Bishop,
+            )? || self.check_king_threat_from_offset_extent(
+                pos,
+                &bishop_offsets,
+                PieceType::Queen,
+            )? {
+                return Ok(true);
+            }
+
+            let pawn_rank_offset = match opponents_side {
+                Side::White => -1,
+                Side::Black => 1,
+            };
+            let potential_pawn_checkers_offsets =
+                [(1, pawn_rank_offset), (-1, pawn_rank_offset)];
+            if self.check_king_threat_from_offset(
+                pos,
+                &potential_pawn_checkers_offsets,
+                PieceType::Pawn,
+            )? {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    #[inline]
+    fn check_king_threat_from_offset(
+        &self,
+        king_pos: Square,
+        offset_tuples: &[(isize, isize)],
+        opponent_piece_type: PieceType,
+    ) -> Result<bool, &'static str> {
+        let opponents_side = self.current_move.flip();
+        let offsets = self.get_offsets(offset_tuples);
+        for offset in offsets {
+            if let Ok(opponent_pos) =
+                self.add_offset_to_position(king_pos, offset)
+            {
+                let maybe_piece = self.get_piece_at_position(opponent_pos)?;
+                if let Some(piece) = maybe_piece {
+                    if piece.piece_type == opponent_piece_type
+                        && piece.side == opponents_side
+                    {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    #[inline]
+    fn check_king_threat_from_offset_extent(
+        &self,
+        king_pos: Square,
+        offset_tuples: &[(isize, isize)],
+        opponent_piece_type: PieceType,
+    ) -> Result<bool, &'static str> {
+        let opponents_side = self.current_move.flip();
+        let offsets = self.get_offsets(offset_tuples);
+        for offset in offsets {
+            let opponent_pos =
+                self.check_ray_for_pieces(king_pos, offset, true);
+            let maybe_piece = self.get_piece_at_position(opponent_pos)?;
+            if let Some(piece) = maybe_piece {
+                if piece.piece_type == opponent_piece_type
+                    && piece.side == opponents_side
+                {
+                    return Ok(true);
+                }
+            }
+        }
+
+        Ok(false)
+    }
+
+    #[inline]
+    fn get_offsets(&self, offsets: &[(isize, isize)]) -> Vec<Offset> {
+        offsets
             .iter()
-            .map(|b| {
-                b.get_positions_of_matching_pieces(Piece::new(
-                    self.current_move,
-                    King,
-                ))
-                .map(|ks| ks.len())
-                .unwrap_or(0)
-            })
-            .any(|n| num_kings != n);
-
-        Ok(is_king_in_threat)
+            .map(|(x, y)| Offset { rank: *y, file: *x })
+            .collect()
     }
 
     /// Returns whether the game is in progress or has ended, along with the
@@ -639,13 +760,14 @@ mod test {
     /// See https://en.wikipedia.org/wiki/Shannon_number
     ///
     /// This test just compares the move generation of `board` against the
-    /// numbers found online. This is a pretty difficult test. Currently, at 5
-    /// ply, it takes 26 seconds to pass in release mode. I'm setting this to
-    /// run at 4 ply for now so that the test runs relatively quickly.
+    /// numbers found online. This is a pretty difficult test. Currently, at 6
+    /// ply, it takes 23 seconds to pass in release mode. I'm setting this to
+    /// run at 5 ply for now so that the test runs relatively quickly, in under
+    /// a second
     #[test]
     fn generates_expected_move_counts() {
-        let expected_move_counts = [20, 400, 8902, 197281];
-        // let expected_move_counts = [20, 400, 8902, 197281, 4865609];
+        let expected_move_counts = [20, 400, 8902, 197281, 4865609];
+        // let expected_move_counts = [20, 400, 8902, 197281, 4865609, 119060324];
 
         for (depth, &expected_move_count) in
             expected_move_counts.iter().enumerate()
