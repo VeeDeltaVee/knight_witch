@@ -7,8 +7,8 @@ use super::{Board, Orientation};
 /// Rank counts from the bottom, starts at 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Square {
-    pub file: usize,
-    pub rank: usize,
+    pub file: u8,
+    pub rank: u8,
 }
 
 /// Represents a square that may or may not be on the board
@@ -17,8 +17,8 @@ pub struct Square {
 /// Rank counts from the bottom, starting at 0
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct UncheckedSquare {
-    pub file: usize,
-    pub rank: usize,
+    pub file: u8,
+    pub rank: u8,
 }
 
 impl UncheckedSquare {
@@ -28,12 +28,15 @@ impl UncheckedSquare {
         board: &Board,
     ) -> Result<Square, InvalidSquareError> {
         if self.file >= board.width {
-            if self.rank * board.width + self.file >= board.squares.len() {
+            if self.rank * board.width + self.file >= board.squares.len() as u8
+            {
                 Err(InvalidSquareError::OutOfBounds(Orientation::Both, self))
             } else {
                 Err(InvalidSquareError::OutOfBounds(Orientation::File, self))
             }
-        } else if self.rank * board.width + self.file >= board.squares.len() {
+        } else if self.rank * board.width + self.file
+            >= board.squares.len() as u8
+        {
             Err(InvalidSquareError::OutOfBounds(Orientation::Rank, self))
         } else {
             Ok(Square {

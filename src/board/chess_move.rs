@@ -52,18 +52,18 @@ impl TryFrom<&str> for ChessMove {
     }
 }
 
-fn file_from_char(ch: char) -> Result<usize, &'static str> {
+fn file_from_char(ch: char) -> Result<u8, &'static str> {
     if !ch.is_ascii_lowercase() {
         Err("Invalid file character")
     } else {
-        Ok(ch as usize - 'a' as usize)
+        Ok(ch as u8 - b'a')
     }
 }
 
-fn rank_from_char(ch: char) -> Result<usize, &'static str> {
+fn rank_from_char(ch: char) -> Result<u8, &'static str> {
     if !ch.is_ascii_digit() || ch == '0' {
         Err("Invalid rank character")
     } else {
-        Ok(ch as usize - '1' as usize)
+        Ok(ch as u8 - b'1')
     }
 }

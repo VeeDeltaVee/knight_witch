@@ -39,8 +39,8 @@ use self::square::{Square, UncheckedSquare};
 // Rank counts from the bottom
 #[derive(Copy, Clone, Debug)]
 pub struct Offset {
-    file: isize,
-    rank: isize,
+    file: i8,
+    rank: i8,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -51,7 +51,7 @@ pub struct Board {
     // Indices work as follows: we start out at the bottom file, go left to
     // right, and then once we reach the end of a file we go up a file.
     squares: Vec<Option<Piece>>,
-    width: usize,
+    width: u8,
     en_passant_target: Option<Square>,
 
     // Which side has to make a move next
@@ -70,10 +70,13 @@ impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Board:")?;
         // We want to print rank 0 at the bottom
-        for rank in (0..self.squares.len() / self.width).rev() {
+        for rank in (0..self.squares.len() / self.width as usize).rev() {
             write!(f, "\t")?;
             for file in 0..self.width {
-                let square = Square { rank, file };
+                let square = Square {
+                    rank: rank as u8,
+                    file,
+                };
                 if self.en_passant_target == Some(square) {
                     write!(f, "*")?;
                     continue;
@@ -152,10 +155,13 @@ impl Board {
             widths.next().ok_or("Can't create board with no height")?;
         widths.all(|w| w == first_width);
 
-        Ok(Board::with_pieces(pieces.flatten().collect(), first_width))
+        Ok(Board::with_pieces(
+            pieces.flatten().collect(),
+            first_width as u8,
+        ))
     }
 
-    pub fn with_pieces(pieces: Vec<Option<Piece>>, width: usize) -> Self {
+    pub fn with_pieces(pieces: Vec<Option<Piece>>, width: u8) -> Self {
         Board {
             squares: pieces,
             width,
@@ -192,7 +198,8 @@ impl Board {
         &self,
         checked: bool,
     ) -> Result<Vec<ChessMove>, &'static str> {
-        let mut moves = self.generate_pawn_moves(checked)?;
+        let mut moves = Vec::with_capacity(224);
+        moves.append(&mut self.generate_pawn_moves(checked)?);
         moves.append(&mut self.generate_knight_moves(checked)?);
         moves.append(&mut self.generate_bishop_moves(checked)?);
         moves.append(&mut self.generate_rook_moves(checked)?);
@@ -229,7 +236,7 @@ impl Board {
         &self,
         square: Square,
     ) -> Result<Option<Piece>, InvalidSquareError> {
-        Ok(self.squares[square.rank * self.width + square.file])
+        Ok(self.squares[(square.rank * self.width + square.file) as usize])
     }
 
     // Sets the piece at the given position to be the given piece
@@ -240,7 +247,7 @@ impl Board {
         piece: Option<Piece>,
         square: Square,
     ) -> Result<(), &'static str> {
-        self.squares[square.rank * self.width + square.file] = piece;
+        self.squares[(square.rank * self.width + square.file) as usize] = piece;
         Ok(())
     }
 
@@ -358,7 +365,7 @@ impl Board {
     fn check_king_threat_from_offset(
         &self,
         king_pos: Square,
-        offset_tuples: &[(isize, isize)],
+        offset_tuples: &[(i8, i8)],
         opponent_piece_type: PieceType,
     ) -> Result<bool, &'static str> {
         let opponents_side = self.current_move.flip();
@@ -385,7 +392,7 @@ impl Board {
     fn check_king_threat_from_offset_extent(
         &self,
         king_pos: Square,
-        offset_tuples: &[(isize, isize)],
+        offset_tuples: &[(i8, i8)],
         opponent_piece_type: PieceType,
     ) -> Result<bool, &'static str> {
         let opponents_side = self.current_move.flip();
@@ -407,7 +414,7 @@ impl Board {
     }
 
     #[inline]
-    fn get_offsets(&self, offsets: &[(isize, isize)]) -> Vec<Offset> {
+    fn get_offsets(&self, offsets: &[(i8, i8)]) -> Vec<Offset> {
         offsets
             .iter()
             .map(|(x, y)| Offset { rank: *y, file: *x })
@@ -491,9 +498,12 @@ impl Board {
         if index >= self.squares.len() {
             Err("Index out of bounds")
         } else {
-            let rank = index / self.width;
-            let file = index - rank * self.width;
-            Ok(Square { rank, file })
+            let rank = index / self.width as usize;
+            let file = index - rank * self.width as usize;
+            Ok(Square {
+                rank: rank as u8,
+                file: file as u8,
+            })
         }
     }
 
@@ -576,8 +586,8 @@ impl Board {
         pos: Square,
         offset: Offset,
     ) -> Result<Square, InvalidOffsetError> {
-        let new_rank = pos.rank as isize + offset.rank;
-        let new_file = pos.file as isize + offset.file;
+        let new_rank = pos.rank as i8 + offset.rank;
+        let new_file = pos.file as i8 + offset.file;
 
         if new_rank < 0 {
             if new_file < 0 {
@@ -589,8 +599,8 @@ impl Board {
             Err(InvalidOffsetError::LessThanZero(Orientation::File, offset))
         } else {
             Ok(self.check_square(UncheckedSquare {
-                rank: new_rank as usize,
-                file: new_file as usize,
+                rank: new_rank as u8,
+                file: new_file as u8,
             })?)
         }
     }
@@ -598,8 +608,8 @@ impl Board {
     // Calculate an offset between two squares on the board
     fn get_offset_of_move(&self, old: Square, new: Square) -> Offset {
         Offset {
-            rank: new.rank as isize - old.rank as isize,
-            file: new.file as isize - old.file as isize,
+            rank: new.rank as i8 - old.rank as i8,
+            file: new.file as i8 - old.file as i8,
         }
     }
 }

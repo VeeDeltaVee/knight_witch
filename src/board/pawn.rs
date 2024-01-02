@@ -82,7 +82,7 @@ impl PawnMovement for Board {
             Piece::new(self.current_move, Pawn),
         )?;
 
-        let single_move_offset: isize = match self.current_move {
+        let single_move_offset: i8 = match self.current_move {
             White => 1,
             Black => -1,
         };

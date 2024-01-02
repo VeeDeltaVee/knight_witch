@@ -254,7 +254,7 @@ fn calculate_index(side: Side, direction: CastlingDirection) -> usize {
 }
 
 /// Get rank where the pieces of the given `side` start
-fn get_starting_rank(side: Side) -> usize {
+fn get_starting_rank(side: Side) -> u8 {
     match side {
         Side::White => 0,
         Side::Black => 7,
@@ -641,7 +641,7 @@ mod test {
             use super::*;
 
             fn assert_indices_and_files_for_board(
-                indices_and_files: &[(usize, usize)],
+                indices_and_files: &[(usize, u8)],
                 boards: &[Board],
             ) {
                 for &(index, file) in indices_and_files {
