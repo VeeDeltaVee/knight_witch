@@ -11,6 +11,9 @@ pub enum ChessMove {
     EnPassant(Square, Square, Square),
 
     Castling(CastlingDirection),
+
+    /// A move that does nothing, but flips the side.
+    NullMove,
 }
 
 impl TryFrom<&str> for ChessMove {

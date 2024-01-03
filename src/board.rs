@@ -454,6 +454,9 @@ impl Board {
                 self.capture_en_passant(from, to, capturing)?
             }
             ChessMove::Castling(dir) => self.castle(dir, checked)?,
+            ChessMove::NullMove => {
+                self.flip_current_side();
+            }
         };
 
         if checked && self.check_king_threat()? {

@@ -38,7 +38,9 @@ impl PawnState for Board {
         chess_move: &ChessMove,
     ) -> Result<(), &'static str> {
         match *chess_move {
-            ChessMove::Castling(_) | ChessMove::EnPassant(_, _, _) => {
+            ChessMove::Castling(_)
+            | ChessMove::EnPassant(_, _, _)
+            | ChessMove::NullMove => {
                 self.en_passant_target = None;
                 Ok(())
             }

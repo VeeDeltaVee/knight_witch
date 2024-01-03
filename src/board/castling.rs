@@ -136,7 +136,10 @@ impl CastlingState for Board {
             // Either a rook was captured en passant, in which case castling was
             // already disallowed when the rook moved off the starting square,
             // or it was a different piece, in which case we don't care.
-            ChessMove::EnPassant(_, _, _) => {}
+            //
+            // Similarly, if it's a null move, literally no piece moves, so we
+            // can ignore it
+            ChessMove::EnPassant(_, _, _) | ChessMove::NullMove => {}
         }
     }
 }
