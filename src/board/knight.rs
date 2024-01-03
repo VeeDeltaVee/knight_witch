@@ -9,37 +9,33 @@ pub trait KnightMovement {
     ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
+pub const KNIGHT_OFFSETS: [Offset; 8] = [
+    Offset { rank: -1, file: 2 },
+    Offset { rank: 1, file: 2 },
+    Offset { rank: -2, file: 1 },
+    Offset { rank: 2, file: 1 },
+    Offset { rank: -2, file: -1 },
+    Offset { rank: 2, file: -1 },
+    Offset { rank: -1, file: -2 },
+    Offset { rank: 1, file: -2 },
+];
+
 impl KnightMovement for Board {
     fn generate_knight_moves(
         &self,
         checked: bool,
     ) -> Result<Vec<ChessMove>, &'static str> {
-        let jumps = [
-            (-1, 2),
-            (1, 2),
-            (-2, 1),
-            (2, 1),
-            (-2, -1),
-            (2, -1),
-            (-1, -2),
-            (1, -2),
-        ];
-
         let knight_positions = self.get_positions_of_matching_pieces(
             Piece::new(self.current_move, Knight),
         )?;
 
         let mut possible_moves = vec![];
         for old_pos in knight_positions {
-            let new_moves = jumps
+            let new_moves = KNIGHT_OFFSETS
                 .iter()
-                .map(|(file, rank)| Offset {
-                    file: *file,
-                    rank: *rank,
-                })
                 // Get target square and check for out-of-bounds moves
                 .filter_map(|dir| {
-                    self.add_offset_to_position(old_pos, dir).ok()
+                    self.add_offset_to_position(old_pos, *dir).ok()
                 })
                 // Check target square: can't take own pieces
                 .filter(|new_pos| {

@@ -20,16 +20,16 @@ use std::fmt;
 
 use piece::*;
 
-use self::bishop::BishopMovement;
+use self::bishop::{BishopMovement, BISHOP_OFFSETS};
 use self::castling::{CastlingMovement, CastlingState};
 use self::chess_move::ChessMove;
 use self::errors::*;
 use self::game::ChessResult;
-use self::king::KingMovement;
-use self::knight::KnightMovement;
+use self::king::{KingMovement, KING_OFFSETS};
+use self::knight::{KnightMovement, KNIGHT_OFFSETS};
 use self::pawn::PawnState;
 use self::queen::QueenMovement;
-use self::rook::RookMovement;
+use self::rook::{RookMovement, ROOK_OFFSETS};
 use self::square::{Square, UncheckedSquare};
 
 // Represents a Offset on the board
@@ -281,74 +281,34 @@ impl Board {
 
         // if any king is in check, the king is threatened
         for pos in king_positions {
-            let knight_offsets = [
-                Offset { rank: -1, file: 2 },
-                Offset { rank: 1, file: 2 },
-                Offset { rank: -2, file: 1 },
-                Offset { rank: 2, file: 1 },
-                Offset { rank: -2, file: -1 },
-                Offset { rank: 2, file: -1 },
-                Offset { rank: -1, file: -2 },
-                Offset { rank: 1, file: -2 },
-            ];
             if self.check_king_threat_from_offset(
                 pos,
-                &knight_offsets,
+                &KNIGHT_OFFSETS,
                 PieceType::Knight,
             )? {
                 return Ok(true);
             }
 
-            let opponents_king_offsets = [
-                Offset { rank: 0, file: 1 },
-                Offset { rank: 1, file: 0 },
-                Offset { rank: 0, file: -1 },
-                Offset { rank: -1, file: 0 },
-                Offset { rank: 1, file: 1 },
-                Offset { rank: 1, file: -1 },
-                Offset { rank: -1, file: 1 },
-                Offset { rank: -1, file: -1 },
-            ];
             if self.check_king_threat_from_offset(
                 pos,
-                &opponents_king_offsets,
+                &KING_OFFSETS,
                 PieceType::King,
             )? {
                 return Ok(true);
             }
 
-            let rook_offsets = [
-                Offset { rank: 0, file: 1 },
-                Offset { rank: 1, file: 0 },
-                Offset { rank: 0, file: -1 },
-                Offset { rank: -1, file: 0 },
-            ];
             if self.check_king_threat_from_offset_extent(
                 pos,
-                &rook_offsets,
+                &ROOK_OFFSETS,
                 PieceType::Rook,
-            )? || self.check_king_threat_from_offset_extent(
-                pos,
-                &rook_offsets,
-                PieceType::Queen,
             )? {
                 return Ok(true);
             }
 
-            let bishop_offsets = [
-                Offset { rank: 1, file: 1 },
-                Offset { rank: 1, file: -1 },
-                Offset { rank: -1, file: 1 },
-                Offset { rank: -1, file: -1 },
-            ];
             if self.check_king_threat_from_offset_extent(
                 pos,
-                &bishop_offsets,
+                &BISHOP_OFFSETS,
                 PieceType::Bishop,
-            )? || self.check_king_threat_from_offset_extent(
-                pos,
-                &bishop_offsets,
-                PieceType::Queen,
             )? {
                 return Ok(true);
             }
@@ -418,7 +378,12 @@ impl Board {
                 self.check_ray_for_pieces(king_pos, *offset, true);
             let maybe_piece = self.get_piece_at_position(opponent_pos)?;
             if let Some(piece) = maybe_piece {
-                if piece.piece_type == opponent_piece_type
+                // For the extent check, it's either going to be a bishop or a
+                // rook, + a queen we could call this function twice, but
+                // that's just slow. Always checking for the queen makes this
+                // much faster
+                if (piece.piece_type == opponent_piece_type
+                    || piece.piece_type == PieceType::Queen)
                     && piece.side == opponents_side
                 {
                     return Ok(true);

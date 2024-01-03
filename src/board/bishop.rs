@@ -12,17 +12,23 @@ pub trait BishopMovement: StraightMovingPieceMovement {
     ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
+pub const BISHOP_OFFSETS: [Offset; 4] = [
+    Offset { rank: 1, file: 1 },
+    Offset { rank: 1, file: -1 },
+    Offset { rank: -1, file: 1 },
+    Offset { rank: -1, file: -1 },
+];
+
 impl BishopMovement for Board {
     fn generate_bishop_moves(
         &self,
         checked: bool,
     ) -> Result<Vec<ChessMove>, &'static str> {
-        let offsets: Vec<Offset> = [(1, 1), (1, -1), (-1, 1), (-1, -1)]
-            .iter()
-            .map(|(x, y)| Offset { rank: *y, file: *x })
-            .collect();
-
-        self.generate_straight_moves(&offsets, PieceType::Bishop, checked)
+        self.generate_straight_moves(
+            &BISHOP_OFFSETS,
+            PieceType::Bishop,
+            checked,
+        )
     }
 }
 

@@ -12,17 +12,19 @@ pub trait RookMovement: StraightMovingPieceMovement {
     ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
+pub const ROOK_OFFSETS: [Offset; 4] = [
+    Offset { rank: 0, file: 1 },
+    Offset { rank: 1, file: 0 },
+    Offset { rank: 0, file: -1 },
+    Offset { rank: -1, file: 0 },
+];
+
 impl RookMovement for Board {
     fn generate_rook_moves(
         &self,
         checked: bool,
     ) -> Result<Vec<ChessMove>, &'static str> {
-        let offsets: Vec<Offset> = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-            .iter()
-            .map(|(x, y)| Offset { rank: *y, file: *x })
-            .collect();
-
-        self.generate_straight_moves(&offsets, PieceType::Rook, checked)
+        self.generate_straight_moves(&ROOK_OFFSETS, PieceType::Rook, checked)
     }
 }
 

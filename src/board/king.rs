@@ -9,24 +9,22 @@ pub trait KingMovement {
     ) -> Result<Vec<ChessMove>, &'static str>;
 }
 
+pub const KING_OFFSETS: [Offset; 8] = [
+    Offset { rank: 0, file: 1 },
+    Offset { rank: 1, file: 0 },
+    Offset { rank: 0, file: -1 },
+    Offset { rank: -1, file: 0 },
+    Offset { rank: 1, file: 1 },
+    Offset { rank: 1, file: -1 },
+    Offset { rank: -1, file: 1 },
+    Offset { rank: -1, file: -1 },
+];
+
 impl KingMovement for Board {
     fn generate_king_moves(
         &self,
         checked: bool,
     ) -> Result<Vec<ChessMove>, &'static str> {
-        let offsets = [
-            (0, 1),
-            (1, 0),
-            (0, -1),
-            (-1, 0),
-            (1, 1),
-            (1, -1),
-            (-1, 1),
-            (-1, -1),
-        ]
-        .iter()
-        .map(|(x, y)| Offset { rank: *y, file: *x });
-
         let positions = self.get_positions_of_matching_pieces(Piece::new(
             self.current_move,
             King,
@@ -35,10 +33,10 @@ impl KingMovement for Board {
         let moves = positions
             .into_iter()
             .flat_map(|pos| {
-                offsets
-                    .clone()
+                KING_OFFSETS
+                    .iter()
                     .filter_map(move |off| {
-                        self.add_offset_to_position(pos, off).ok()
+                        self.add_offset_to_position(pos, *off).ok()
                     })
                     .map(move |new| (pos, new))
             })
