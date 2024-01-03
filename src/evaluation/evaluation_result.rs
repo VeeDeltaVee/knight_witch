@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, iter::Sum, ops::Add};
 
-use crate::board::game::ChessResult;
+use crate::board::{game::ChessResult, piece::Side};
 
 pub type Centipawns = i32;
 pub type Depth = u8;
@@ -25,6 +25,11 @@ impl Evaluation {
             self
         }
     }
+
+    pub const BEST_FOR_BLACK: Self =
+        Evaluation::Certain(ChessResult::Checkmate(Side::White), 0);
+    pub const BEST_FOR_WHITE: Self =
+        Evaluation::Certain(ChessResult::Checkmate(Side::Black), 0);
 }
 
 /// Evaluation has a custom implementation for Ord, because comparing vague

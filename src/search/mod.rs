@@ -1,4 +1,6 @@
+pub mod alphabeta;
 pub mod minimax;
+
 use crate::{
     board::{chess_move::ChessMove, Board},
     evaluation::evaluation_result::Evaluation,

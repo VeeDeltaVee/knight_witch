@@ -8,11 +8,11 @@ use super::{Evaluation, Evaluator};
 /// MaterialEvaluator is the simplest evaluator that's still somewhat useful:
 /// it just evaluates chess positions by material. It would make for a very
 /// stereotypically materialistic engine.
-struct MaterialEvaluator {}
+pub struct MaterialEvaluator {}
 
 impl MaterialEvaluator {
     #[allow(dead_code)]
-    fn new() -> Self {
+    pub fn new() -> Self {
         MaterialEvaluator {}
     }
 }
