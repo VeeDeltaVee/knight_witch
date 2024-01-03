@@ -282,14 +282,14 @@ impl Board {
         // if any king is in check, the king is threatened
         for pos in king_positions {
             let knight_offsets = [
-                (-1, 2),
-                (1, 2),
-                (-2, 1),
-                (2, 1),
-                (-2, -1),
-                (2, -1),
-                (-1, -2),
-                (1, -2),
+                Offset { rank: -1, file: 2 },
+                Offset { rank: 1, file: 2 },
+                Offset { rank: -2, file: 1 },
+                Offset { rank: 2, file: 1 },
+                Offset { rank: -2, file: -1 },
+                Offset { rank: 2, file: -1 },
+                Offset { rank: -1, file: -2 },
+                Offset { rank: 1, file: -2 },
             ];
             if self.check_king_threat_from_offset(
                 pos,
@@ -300,14 +300,14 @@ impl Board {
             }
 
             let opponents_king_offsets = [
-                (0, 1),
-                (1, 0),
-                (0, -1),
-                (-1, 0),
-                (1, 1),
-                (1, -1),
-                (-1, 1),
-                (-1, -1),
+                Offset { rank: 0, file: 1 },
+                Offset { rank: 1, file: 0 },
+                Offset { rank: 0, file: -1 },
+                Offset { rank: -1, file: 0 },
+                Offset { rank: 1, file: 1 },
+                Offset { rank: 1, file: -1 },
+                Offset { rank: -1, file: 1 },
+                Offset { rank: -1, file: -1 },
             ];
             if self.check_king_threat_from_offset(
                 pos,
@@ -317,7 +317,12 @@ impl Board {
                 return Ok(true);
             }
 
-            let rook_offsets = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+            let rook_offsets = [
+                Offset { rank: 0, file: 1 },
+                Offset { rank: 1, file: 0 },
+                Offset { rank: 0, file: -1 },
+                Offset { rank: -1, file: 0 },
+            ];
             if self.check_king_threat_from_offset_extent(
                 pos,
                 &rook_offsets,
@@ -330,7 +335,12 @@ impl Board {
                 return Ok(true);
             }
 
-            let bishop_offsets = [(1, 1), (1, -1), (-1, 1), (-1, -1)];
+            let bishop_offsets = [
+                Offset { rank: 1, file: 1 },
+                Offset { rank: 1, file: -1 },
+                Offset { rank: -1, file: 1 },
+                Offset { rank: -1, file: -1 },
+            ];
             if self.check_king_threat_from_offset_extent(
                 pos,
                 &bishop_offsets,
@@ -347,8 +357,16 @@ impl Board {
                 Side::White => -1,
                 Side::Black => 1,
             };
-            let potential_pawn_checkers_offsets =
-                [(1, pawn_rank_offset), (-1, pawn_rank_offset)];
+            let potential_pawn_checkers_offsets = [
+                Offset {
+                    rank: pawn_rank_offset,
+                    file: 1,
+                },
+                Offset {
+                    rank: pawn_rank_offset,
+                    file: -1,
+                },
+            ];
             if self.check_king_threat_from_offset(
                 pos,
                 &potential_pawn_checkers_offsets,
@@ -365,14 +383,13 @@ impl Board {
     fn check_king_threat_from_offset(
         &self,
         king_pos: Square,
-        offset_tuples: &[(i8, i8)],
+        offsets: &[Offset],
         opponent_piece_type: PieceType,
     ) -> Result<bool, &'static str> {
         let opponents_side = self.current_move.flip();
-        let offsets = self.get_offsets(offset_tuples);
         for offset in offsets {
             if let Ok(opponent_pos) =
-                self.add_offset_to_position(king_pos, offset)
+                self.add_offset_to_position(king_pos, *offset)
             {
                 let maybe_piece = self.get_piece_at_position(opponent_pos)?;
                 if let Some(piece) = maybe_piece {
@@ -392,14 +409,13 @@ impl Board {
     fn check_king_threat_from_offset_extent(
         &self,
         king_pos: Square,
-        offset_tuples: &[(i8, i8)],
+        offsets: &[Offset],
         opponent_piece_type: PieceType,
     ) -> Result<bool, &'static str> {
         let opponents_side = self.current_move.flip();
-        let offsets = self.get_offsets(offset_tuples);
         for offset in offsets {
             let opponent_pos =
-                self.check_ray_for_pieces(king_pos, offset, true);
+                self.check_ray_for_pieces(king_pos, *offset, true);
             let maybe_piece = self.get_piece_at_position(opponent_pos)?;
             if let Some(piece) = maybe_piece {
                 if piece.piece_type == opponent_piece_type
@@ -411,14 +427,6 @@ impl Board {
         }
 
         Ok(false)
-    }
-
-    #[inline]
-    fn get_offsets(&self, offsets: &[(i8, i8)]) -> Vec<Offset> {
-        offsets
-            .iter()
-            .map(|(x, y)| Offset { rank: *y, file: *x })
-            .collect()
     }
 
     /// Returns whether the game is in progress or has ended, along with the
